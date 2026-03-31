@@ -1,0 +1,10 @@
+*.log
+*.yml
+.env
+.env.*
+!.env.example
+.idea/
+.vscode/
+*.png
+*.ttf
+*.gif
