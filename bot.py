@@ -1,11 +1,13 @@
 """NoneBot2 主入口"""
 import nonebot
 from nonebot.adapters.onebot.v11 import Adapter as OneBotV11Adapter
+from nonebot.adapters.console import Adapter as ConsoleAdapter
 
 nonebot.init()
 
 driver = nonebot.get_driver()
 driver.register_adapter(OneBotV11Adapter)
+driver.register_adapter(ConsoleAdapter)
 
 # 加载插件目录
 nonebot.load_plugins("maplebot/plugins")
