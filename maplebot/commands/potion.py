@@ -1,8 +1,8 @@
 """药水效率表格"""
 import logging
 
-from maplebot.utils.config import level_exp_data
 from maplebot.utils.charts import render_table
+from maplebot.utils.config import level_exp_data
 
 logger = logging.getLogger("maplebot.potion")
 
@@ -84,4 +84,3 @@ def calculate_potion() -> str | None:
     except Exception as e:
         logger.error("render chart failed: %s", e)
         return None
-

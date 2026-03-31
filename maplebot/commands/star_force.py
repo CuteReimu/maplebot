@@ -69,8 +69,7 @@ def _get_boom_star(cur_star: int, new_system: bool) -> int:
     return 12
 
 
-def _get_meso_cost(cur_star, eq_level, safe_guard=False, job_zero=False,
-                   discount=False, new_system=False):
+def _get_meso_cost(cur_star, eq_level, safe_guard=False, discount=False, new_system=False):
     multiplier = 1
     if discount:
         multiplier -= 0.3
@@ -120,8 +119,7 @@ def _get_odds_and_inc(i, safe_guard, kms_new, _5_10_15, star_catch, boom_events)
         return 1.0, 0.0, 0.0, 0.0, 1
     if star_catch:
         upgrade *= 1.05
-        if upgrade > 1.0:
-            upgrade = 1.0
+        upgrade = min(upgrade, 1.0)
         mult = (1 - upgrade) / (1 - _RATES[int(kms_new)][i][0]) if _RATES[int(kms_new)][i][0] < 1.0 else 0
         fail_break *= mult
         fail_stay *= mult
@@ -144,23 +142,23 @@ def _get_odds_and_inc(i, safe_guard, kms_new, _5_10_15, star_catch, boom_events)
     return upgrade, fail_stay, fail_down, fail_break, increment
 
 
-def _calculate_markov(P, C, init_idx, absorb_count=1):
-    n = P.shape[0]
-    Q = P[:-absorb_count, :-absorb_count]
-    P_full = P[:-absorb_count, :]
-    C_full = C[:-absorb_count, :]
-    r = np.sum(P_full * C_full, axis=1)
-    I = np.eye(n - absorb_count)
-    g = np.linalg.solve(I - Q, r)
+def _calculate_markov(p, c, init_idx, absorb_count=1):
+    n = p.shape[0]
+    q = p[:-absorb_count, :-absorb_count]
+    p_full = p[:-absorb_count, :]
+    c_full = c[:-absorb_count, :]
+    r = np.sum(p_full * c_full, axis=1)
+    i = np.eye(n - absorb_count)
+    g = np.linalg.solve(i - q, r)
     return g[init_idx]
 
 
-def _calculate_no_boom_chance(P, init_idx):
-    Q = P[:-2, :-2]
-    I = np.eye(Q.shape[0])
-    R = P[:-2, -2:]
-    B_absorb = np.linalg.solve(I - Q, R)
-    return B_absorb[init_idx][1]
+def _calculate_no_boom_chance(p, init_idx):
+    q = p[:-2, :-2]
+    i = np.eye(q.shape[0])
+    r = p[:-2, -2:]
+    b_absorb = np.linalg.solve(i - q, r)
+    return b_absorb[init_idx][1]
 
 
 def _cal_sf(eq_level, init_star, end_star, safe_guard, star_catch,
@@ -168,12 +166,12 @@ def _cal_sf(eq_level, init_star, end_star, safe_guard, star_catch,
     """Markov 链精确计算"""
     new_system = kms_new
     size = end_star * 2 + 1
-    P_arr = np.zeros((size, size))
+    p_arr = np.zeros((size, size))
     weights_mat = np.zeros((size, size))
     no_boom_mat = np.zeros((size + 1, size + 1))
     boom_cost_mat = np.zeros((size, size))
     tap_cost_mat = np.zeros((size, size))
-    P_arr[end_star * 2, end_star * 2] = 1
+    p_arr[end_star * 2, end_star * 2] = 1
 
     for i in range(end_star):
         upgrade, fail_stay, fail_down, fail_break, inc = _get_odds_and_inc(
@@ -187,12 +185,12 @@ def _cal_sf(eq_level, init_star, end_star, safe_guard, star_catch,
         )
         if not new_system and _5_10_15 and i == 15:
             _sg = False
-        cost = _get_meso_cost(i, eq_level, _sg, False, discount, new_system)
+        cost = _get_meso_cost(i, eq_level, _sg, discount, new_system)
 
         a = 2 * i
         # Upgrade
         b = 2 * i + 2 * inc
-        P_arr[a, b] = upgrade
+        p_arr[a, b] = upgrade
         weights_mat[a, b] = cost
         tap_cost_mat[a, b] = 1
         if i + inc == end_star:
@@ -201,7 +199,7 @@ def _cal_sf(eq_level, init_star, end_star, safe_guard, star_catch,
             no_boom_mat[a, b] = upgrade
 
         # Stay
-        P_arr[a, a] = fail_stay
+        p_arr[a, a] = fail_stay
         no_boom_mat[a, a] = fail_stay
         tap_cost_mat[a, a] = 1
         if fail_stay > 0:
@@ -213,7 +211,7 @@ def _cal_sf(eq_level, init_star, end_star, safe_guard, star_catch,
                 b_down = 2 * i - 2
             else:
                 b_down = 2 * i - 1
-            P_arr[a, b_down] = fail_down
+            p_arr[a, b_down] = fail_down
             tap_cost_mat[a, b_down] = 1
             no_boom_mat[a, b_down] = fail_down
             weights_mat[a, b_down] = cost
@@ -222,19 +220,19 @@ def _cal_sf(eq_level, init_star, end_star, safe_guard, star_catch,
         if i >= 16 and i not in (19, 20) and not new_system:
             b_up = 2 * i + 2 * inc
             ct_a = 2 * i + 1
-            P_arr[ct_a, b_up] = upgrade
+            p_arr[ct_a, b_up] = upgrade
             no_boom_mat[ct_a, b_up] = upgrade
             tap_cost_mat[ct_a, b_up] = 1
             weights_mat[ct_a, b_up] = cost
             if fail_down > 0:
-                lower_cost = _get_meso_cost(i - 1, eq_level, False, False, discount, new_system)
-                P_arr[ct_a, 2 * i] = fail_down
+                lower_cost = _get_meso_cost(i - 1, eq_level, False, discount, new_system)
+                p_arr[ct_a, 2 * i] = fail_down
                 no_boom_mat[ct_a, 2 * i] = fail_down
                 weights_mat[ct_a, 2 * i] = cost + lower_cost
                 tap_cost_mat[ct_a, 2 * i] = 2
             if fail_break > 0:
                 boom_star = _get_boom_star(i, new_system)
-                P_arr[ct_a, 2 * boom_star] = fail_break
+                p_arr[ct_a, 2 * boom_star] = fail_break
                 no_boom_mat[ct_a, -2] += fail_break
                 weights_mat[ct_a, 2 * boom_star] = cost
                 tap_cost_mat[ct_a, 2 * boom_star] = 1
@@ -243,22 +241,22 @@ def _cal_sf(eq_level, init_star, end_star, safe_guard, star_catch,
         # Boom
         if fail_break > 0:
             boom_star = _get_boom_star(i, new_system)
-            P_arr[a, 2 * boom_star] = fail_break
+            p_arr[a, 2 * boom_star] = fail_break
             no_boom_mat[a, -2] = fail_break
             weights_mat[a, 2 * boom_star] = cost
             tap_cost_mat[a, 2 * boom_star] = 1
             boom_cost_mat[a, 2 * boom_star] = 1
 
-    total_mean = _calculate_markov(P_arr, weights_mat, 2 * init_star)
-    tap_mean = _calculate_markov(P_arr, tap_cost_mat, 2 * init_star)
-    boom_mean = _calculate_markov(P_arr, boom_cost_mat, 2 * init_star)
+    total_mean = _calculate_markov(p_arr, weights_mat, 2 * init_star)
+    tap_mean = _calculate_markov(p_arr, tap_cost_mat, 2 * init_star)
+    boom_mean = _calculate_markov(p_arr, boom_cost_mat, 2 * init_star)
     no_boom = _calculate_no_boom_chance(no_boom_mat, 2 * init_star)
 
     midway = []
     for mid in range(init_star + 1, end_star):
         sub_size = 2 * mid + 1
         mid_mean = _calculate_markov(
-            P_arr[:sub_size, :sub_size],
+            p_arr[:sub_size, :sub_size],
             weights_mat[:sub_size, :sub_size],
             2 * init_star,
         )
@@ -312,7 +310,7 @@ def _perform_experiment(current_star, desired_star, new_kms, item_level,
         cost = _get_meso_cost(star, item_level,
                               boom_protect and not (five_ten_fifteen and star == 15)
                               and not chance_time and star in (15, 16),
-                              False, thirty_off, new_kms)
+                              thirty_off, new_kms)
         total_mesos += cost
 
         if chance_time:
@@ -485,4 +483,3 @@ def calculate_star_force(new_kms: bool, content: str) -> list:
                 logger.error("render chart failed: %s", e)
 
     return result
-

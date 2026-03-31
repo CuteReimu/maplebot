@@ -12,4 +12,3 @@ nonebot.load_plugins("maplebot/plugins")
 
 if __name__ == "__main__":
     nonebot.run()
-

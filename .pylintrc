@@ -1,0 +1,68 @@
+[MAIN]
+# 使用多进程加速分析（0 = 自动检测 CPU 数量）
+jobs = 0
+
+# 分析时忽略的文件或目录（正则表达式）
+ignore = .venv, .git, __pycache__
+
+# 分析时忽略的文件路径（glob 模式）
+ignore-paths = ^\.venv/.*$
+
+# Python 版本（与项目 .venv 一致）
+py-version = 3.13
+
+[MESSAGES CONTROL]
+# 禁用的检查项（根据项目实际情况调整）
+disable =
+    missing-module-docstring,      # 允许模块不写 docstring
+    duplicate-code,
+    too-many-locals,
+    too-many-return-statements,
+    too-many-branches,
+    too-many-statements,
+    missing-function-docstring,    # 允许函数不写 docstring
+    broad-exception-caught,        # 允许捕获 broad exception（如 Exception）
+
+
+[FORMAT]
+# 每行最大字符数
+max-line-length = 127
+
+# 缩进空格数
+indent-string = '    '
+
+[DESIGN]
+# 函数/方法最大参数数（nonebot handler 参数较多）
+max-args = 10
+max-positional-arguments = 10
+
+# 函数最大局部变量数
+max-locals = 20
+
+# 函数最大返回语句数
+max-returns = 10
+
+# 函数最大分支数
+max-branches = 20
+
+# 函数最大语句数
+max-statements = 60
+
+[BASIC]
+# 允许单字母变量名（如 f, i, k, v 等）
+good-names = i, j, k, v, f, n, e, db, id
+
+# 类名命名规则（允许小写下划线，nonebot 事件处理器常用）
+class-naming-style = any
+
+[SIMILARITIES]
+# 重复代码检测的最小行数
+min-similarity-lines = 6
+
+[LOGGING]
+# 日志模块（loguru 是 nonebot2 默认日志库）
+logging-modules = loguru
+
+[REPORTS]
+# 输出得分
+score = yes

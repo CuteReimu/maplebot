@@ -1,7 +1,8 @@
 """配置管理模块"""
-import os
 import logging
+import os
 
+import yaml
 from dynaconf import Dynaconf
 
 logger = logging.getLogger("maplebot.config")
@@ -24,10 +25,8 @@ _CONFIG_DEFAULTS = {
 
 _CONFIG_FILE = os.path.join(_CONFIG_DIR, "Config.yml")
 if not os.path.exists(_CONFIG_FILE):
-    import yaml
-
-    with open(_CONFIG_FILE, "w", encoding="utf-8") as f:
-        yaml.dump(_CONFIG_DEFAULTS, f, allow_unicode=True)
+    with open(_CONFIG_FILE, "w", encoding="utf-8") as file:
+        yaml.dump(_CONFIG_DEFAULTS, file, allow_unicode=True)
     logger.info("已生成默认配置文件: %s", _CONFIG_FILE)
 
 config = Dynaconf(
@@ -37,8 +36,6 @@ config = Dynaconf(
 
 
 # ---------- 数据文件辅助（QunDb / FindRoleData / LevelExpData / ClassImageData） ----------
-import yaml
-
 
 def _ensure_yaml(path: str, defaults: dict | None = None) -> dict:
     """确保 YAML 文件存在并返回其内容"""
@@ -104,4 +101,3 @@ qun_db = YamlStore(_DATA_DIR, "QunDb")
 find_role_data = YamlStore(_DATA_DIR, "FindRoleData")
 level_exp_data = YamlStore(_DATA_DIR, "LevelExpData")
 class_image_data = YamlStore(_DATA_DIR, "ClassImageData")
-

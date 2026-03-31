@@ -1,7 +1,6 @@
 """魔方概率计算"""
 import json
 import logging
-import math
 import os
 
 from nonebot.adapters.onebot.v11 import MessageSegment
@@ -303,7 +302,9 @@ _MATCH_FNS = {
     "secCooldown": lambda o, r: _calculate_total(o, CAT_CDR, True) >= r,
     "lineAttOrBoss": lambda o, r: _calculate_total(o, CAT_ATT, False) + _calculate_total(o, CAT_BOSS, False) >= r,
     "lineAttOrBossOrIed": lambda o, r: (
-        _calculate_total(o, CAT_ATT, False) + _calculate_total(o, CAT_BOSS, False) + _calculate_total(o, CAT_IED, False) >= r
+        _calculate_total(o, CAT_ATT, False) +
+        _calculate_total(o, CAT_BOSS, False) +
+        _calculate_total(o, CAT_IED, False) >= r
     ),
     "lineBossOrIed": lambda o, r: _calculate_total(o, CAT_BOSS, False) + _calculate_total(o, CAT_IED, False) >= r,
 }
@@ -520,4 +521,3 @@ def calculate_cube(s: str) -> list:
     except Exception as e:
         logger.error("生成表格失败: %s", e)
         return []
-

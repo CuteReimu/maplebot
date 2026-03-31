@@ -41,4 +41,3 @@ def gen_table(s: str) -> str | None:
     except Exception as e:
         logger.error("render chart failed: %s", e)
         return None
-

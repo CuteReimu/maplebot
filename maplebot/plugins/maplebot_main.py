@@ -6,25 +6,25 @@ import random
 from nonebot import on_message
 from nonebot.adapters.onebot.v11 import Bot, GroupMessageEvent, MessageSegment
 
-from maplebot.utils.config import config, qun_db, find_role_data
-from maplebot.utils.perm import is_admin
-from maplebot.utils.dict_tfidf import get_familiar_value, add_into_dict
+from maplebot.commands.arc_more_damage import get_more_damage_arc
+from maplebot.commands.boss_party import (
+    handle_boss_party,
+    handle_subscribe,
+    handle_unsubscribe,
+)
 from maplebot.commands.cube import calculate_cube, calculate_cube_all
-from maplebot.commands.star_force import calculate_star_force, calculate_boom_count
 from maplebot.commands.find_role import find_role
+from maplebot.commands.gen_table import gen_table
 from maplebot.commands.level_exp import (
     calculate_level_exp,
     calculate_exp_between_level,
     calculate_exp_damage,
 )
 from maplebot.commands.potion import calculate_potion
-from maplebot.commands.arc_more_damage import get_more_damage_arc
-from maplebot.commands.gen_table import gen_table
-from maplebot.commands.boss_party import (
-    handle_boss_party,
-    handle_subscribe,
-    handle_unsubscribe,
-)
+from maplebot.commands.star_force import calculate_star_force, calculate_boom_count
+from maplebot.utils.config import config, qun_db, find_role_data
+from maplebot.utils.dict_tfidf import get_familiar_value, add_into_dict
+from maplebot.utils.perm import is_admin
 
 logger = logging.getLogger("maplebot.plugin")
 
@@ -171,7 +171,7 @@ async def handle_group(bot: Bot, event: GroupMessageEvent):
 
     # ---- 模拟升星 / 模拟上星 / 升星期望 / 上星期望 ----
     for sf_cmd in ("模拟升星", "模拟上星", "升星期望", "上星期望"):
-        if cmd == sf_cmd or cmd == sf_cmd + "旧":
+        if cmd in (sf_cmd, sf_cmd + "旧"):
             new_kms = not cmd.endswith("旧")
             if not content:
                 await bot.send(
@@ -350,4 +350,3 @@ async def _deal_search_dict(bot: Bot, event: GroupMessageEvent, key: str):
         await bot.send(event, "搜索到以下词条：\n" + "\n".join(lines))
     else:
         await bot.send(event, f"搜索不到词条({key})")
-

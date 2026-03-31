@@ -108,4 +108,3 @@ def handle_unsubscribe(
     arr = _get_boss_chars(boss_list, content)
     _unsubscribe(arr, uid)
     return f"取消订阅成功 {''.join(arr)}"
-

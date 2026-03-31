@@ -127,4 +127,3 @@ def translate_class_id(class_id: int) -> str:
     if name := CLASS_ID_MAP.get(class_id // 100):
         return translate_class_name(name)
     return ""
-

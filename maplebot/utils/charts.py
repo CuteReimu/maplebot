@@ -6,10 +6,11 @@ import os
 import sys
 
 import matplotlib
-matplotlib.use("Agg")
-import matplotlib.pyplot as plt  # noqa: E402
 import matplotlib.font_manager as fm  # noqa: E402
+import matplotlib.pyplot as plt  # noqa: E402
 import numpy as np  # noqa: E402
+
+matplotlib.use("Agg")
 
 logger = logging.getLogger("maplebot.charts")
 
@@ -97,7 +98,6 @@ def render_pie(
     values: list[float],
     labels: list[str],
     title: str = "",
-    label_formatter: str = "{label}: {value:.2f}{unit}",
     unit: str = "",
 ) -> str:
     """渲染饼图为 base64 PNG 图片"""
@@ -182,4 +182,3 @@ def render_bar_line(
     ax1.spines["bottom"].set_color("#20253a")
 
     return _fig_to_base64(fig)
-

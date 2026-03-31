@@ -1,6 +1,6 @@
 """基于 TF-IDF 的文本相似度计算"""
-import math
 import logging
+import math
 import re
 
 import jieba
@@ -109,4 +109,3 @@ def get_familiar_value(m: dict[str, str], key: str) -> str:
     ):
         return m[cache[0][0]]
     return ""
-

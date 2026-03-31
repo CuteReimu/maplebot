@@ -1,16 +1,20 @@
 """角色查询"""
 import base64
 import datetime
+import io
 import json
 import logging
 import math
 import os
 
 import httpx
+import matplotlib
+import matplotlib.pyplot as plt
+import numpy as np
 from nonebot.adapters.onebot.v11 import MessageSegment
 
-from maplebot.utils.config import level_exp_data, find_role_data
 from maplebot.utils.class_name import translate_class_name, translate_class_id
+from maplebot.utils.config import level_exp_data, find_role_data
 
 logger = logging.getLogger("maplebot.find_role")
 
@@ -103,13 +107,9 @@ def _days_to_level(dated_exps, current_exp, current_lvl, lvl_single):
 # ---------- 图表绘制 ----------
 def _draw_chart(days, dated_exps, dated_lvls) -> str:
     """绘制经验图表，返回 base64"""
-    import matplotlib
     matplotlib.use("Agg")
-    import matplotlib.pyplot as plt
-    import numpy as np
-    import io
 
-    T = 1e12
+    t = 1e12
     bar_values = []
     colors = []
     raw_exps = []
@@ -119,7 +119,7 @@ def _draw_chart(days, dated_exps, dated_lvls) -> str:
             colors.append("#4d6bff")
             raw_exps.append(0)
         else:
-            v = val / T
+            v = val / t
             raw_exps.append(val)
             if v > 10:
                 bar_values.append(10)
@@ -151,8 +151,8 @@ def _draw_chart(days, dated_exps, dated_lvls) -> str:
 
     # 溢出标注
     for i, (val, bv) in enumerate(zip(raw_exps, bar_values)):
-        if val / T > 10:
-            ax1.text(x=i, y=bv + 0.3, s=f"{val/T:.1f}T",
+        if val / t > 10:
+            ax1.text(x=i, y=bv + 0.3, s=f"{val/t:.1f}T",
                      ha="center", va="bottom", color="#fff", fontsize=12, zorder=5)
 
     tick_color = "#a7adc4"
@@ -224,7 +224,7 @@ def _try_local(name: str) -> list | None:
     msgs: list = []
     if avatar:
         try:
-            raw = base64.b64decode(avatar)
+            base64.b64decode(avatar)
             msgs.append(MessageSegment.image(f"base64://{avatar}"))
         except Exception:
             pass
@@ -358,11 +358,9 @@ async def find_role(name: str) -> list:
 
 async def find_role_background():
     """后台预抓取角色数据（供 cron 任务调用）"""
-    from maplebot.utils.config import config
     logger.info("开始角色数据预抓取")
     names = find_role_data.get_string_map_string("data")
-    for uid, name in names.items():
+    for name in names.values():
         if name:
             _process_player_data(name)
     logger.info("完成角色数据预抓取")
-

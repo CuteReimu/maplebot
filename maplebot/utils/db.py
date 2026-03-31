@@ -1,7 +1,7 @@
 """KV 数据库"""
-import shelve
-import os
 import logging
+import os
+import shelve
 import threading
 
 logger = logging.getLogger("maplebot.db")
@@ -44,4 +44,3 @@ def delete(key: str) -> None:
                     del db[key]
         except Exception as e:
             logger.error("delete failed: key=%s, error=%s", key, e)
-

@@ -1,7 +1,10 @@
 """权限检查模块"""
 import logging
+
 from nonebot.adapters.onebot.v11 import Bot
+
 from maplebot.utils.config import config
+
 logger = logging.getLogger("maplebot.perm")
 def is_super_admin(qq: int) -> bool:
     return qq == config.get("admin", 0)

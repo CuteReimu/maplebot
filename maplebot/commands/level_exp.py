@@ -1,8 +1,8 @@
 """等级经验计算"""
 import logging
 
-from maplebot.utils.config import level_exp_data
 from maplebot.utils.charts import render_table
+from maplebot.utils.config import level_exp_data
 
 logger = logging.getLogger("maplebot.level_exp")
 
@@ -102,5 +102,3 @@ def calculate_exp_damage(s: str) -> str | None:
     if i > -40:
         return f"你比怪物等级低{-i}级时，终伤{2.5 * i:g}%"
     return "你比怪物等级低40级以上时，终伤-100%"
-
-
