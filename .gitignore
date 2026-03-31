@@ -1,8 +1,6 @@
 *.log
 *.yml
-.env
-.env.*
-!.env.example
+.env.local
 .idea/
 .vscode/
 *.png
