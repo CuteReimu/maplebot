@@ -8,3 +8,6 @@
 *.png
 *.ttf
 *.gif
+venv/
+.venv/
+__pycache__/
