@@ -9,3 +9,8 @@
 venv/
 .venv/
 __pycache__/
+
+/player_data/
+/data/
+/assets/
+player_name.json

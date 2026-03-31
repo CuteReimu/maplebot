@@ -2,6 +2,18 @@
 
 GMSR 群机器人，基于 [NoneBot2](https://github.com/nonebot/nonebot2) + OneBot 11 协议。
 
+## 开始
+
+在项目根目录运行：
+
+```bash
+# 安装依赖
+pip install -r requirements.txt
+
+# 运行
+python bot.py
+```
+
 ## 项目结构
 
 ```
