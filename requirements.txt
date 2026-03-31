@@ -6,7 +6,6 @@ PyYAML>=6.0
 matplotlib>=3.8.0
 numpy>=2.0.0
 jieba>=0.42.1
-requests>=2.32.0
 
 # 开发依赖
 pylint>=4.0.0
