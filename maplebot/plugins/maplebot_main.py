@@ -4,10 +4,13 @@ from __future__ import annotations
 import json
 import logging
 import random
-from typing import Any, Callable, Awaitable
+from typing import Any
 
-from nonebot import on_message
+from nonebot import on_command, on_message
+from nonebot.adapters import Bot, Event
 from nonebot.log import logger as nb_logger
+from nonebot.params import CommandArg, Command
+from nonebot.rule import Rule
 from nonebot.adapters.onebot.v11 import (
     Bot as V11Bot,
     GroupMessageEvent,
@@ -16,9 +19,7 @@ from nonebot.adapters.onebot.v11 import (
 
 try:
     from nonebot.adapters.console import (
-        Bot as ConsoleBot,
         MessageEvent as ConsoleMessageEvent,
-        MessageSegment as ConSeg,
     )
     _HAS_CONSOLE = True
 except ImportError:
@@ -45,11 +46,6 @@ from maplebot.utils.dict_tfidf import get_familiar_value, add_into_dict
 
 logger = logging.getLogger("maplebot.plugin")
 nb_logger.opt(colors=True).info("<green>✅ maplebot_main 插件加载成功！</green>")
-
-# ====================== Matchers ======================
-group_msg = on_message(priority=10, block=False)
-if _HAS_CONSOLE:
-    console_msg = on_message(priority=10, block=False)
 
 # ---------- 待添加词条队列 ----------
 _add_db_qq_list: dict[int, str] = {}
@@ -80,346 +76,500 @@ def _in_valid_group(group_id: int) -> bool:
     return int(group_id) in [int(g) for g in groups]
 
 
-# ====================== 通用发送回调类型 ======================
-# send(message) — 统一的回复函数
-SendFunc = Callable[[Any], Awaitable[None]]
+# ====================== 通用工具 ======================
+
+async def _check_valid_group(event: Event) -> bool:
+    """Rule：仅允许配置中的 QQ 群或 Console 事件"""
+    if isinstance(event, GroupMessageEvent):
+        return _in_valid_group(event.group_id)
+    return True
 
 
-def _make_image_or_text(base64_data: str, *, is_console: bool) -> Any:
+_valid_group_rule = Rule(_check_valid_group)
+
+
+def _get_user_id(event: Event) -> int:
+    try:
+        return int(event.get_user_id())
+    except (ValueError, NotImplementedError):
+        return 0
+
+
+def _is_console(event: Event) -> bool:
+    return _HAS_CONSOLE and isinstance(event, ConsoleMessageEvent)
+
+
+def _make_image_or_text(base64_data: str, event: Event) -> Any:
     """OneBot 返回 MessageSegment.image；Console 返回纯文字占位。"""
-    if is_console:
+    if _is_console(event):
         return "[图片结果 - 请在 QQ 中查看]"
     return V11Seg.image(f"base64://{base64_data}")
 
 
-# ====================== 核心命令路由（适配器无关） ======================
-async def _dispatch(
-    send: SendFunc,
-    raw_text: str,
-    user_id: int,
-    message_obj: Any,
-    *,
-    is_console: bool = False,
-    is_admin: bool = False,
-    # 以下仅 OneBot V11 场景使用
-    bot: V11Bot | None = None,
-    event: GroupMessageEvent | None = None,
-) -> None:
-    """核心命令分发，不依赖具体适配器类型。"""
+async def _is_admin(bot: Bot, event: Event) -> bool:
+    """判断当前用户是否为管理员"""
+    if _is_console(event):
+        return True
+    if isinstance(bot, V11Bot) and isinstance(event, GroupMessageEvent):
+        from maplebot.utils.perm import is_admin  # pylint: disable=import-outside-toplevel
+        return await is_admin(bot, event.group_id, event.user_id)
+    return False
 
-    # ---------- 可能是词条添加的回复 ----------
-    if user_id in _add_db_qq_list:
-        key = _add_db_qq_list.pop(user_id)
-        if key == "太阳":
-            await send("未知错误")
-            return
-        buf = json.dumps(str(message_obj))
-        m = qun_db.get_string_map_string("data")
-        m[key] = buf
-        qun_db.set("data", m)
-        qun_db.save()
-        await send("编辑词条成功")
+
+# ====================== TF-IDF 追踪（最高优先级，不阻塞） ======================
+_tfidf_tracker = on_message(priority=1, block=False)
+
+
+@_tfidf_tracker.handle()
+async def _handle_tfidf(event: Event):
+    if isinstance(event, GroupMessageEvent) and not _in_valid_group(event.group_id):
         return
+    raw_text = event.get_plaintext().strip()
+    if raw_text:
+        add_into_dict(raw_text)
 
-    if not raw_text:
+
+# ====================== 词条添加回调（高优先级，匹配时阻塞） ======================
+_dict_callback = on_message(priority=5, block=False)
+
+
+@_dict_callback.handle()
+async def _handle_dict_callback(event: Event):
+    if isinstance(event, GroupMessageEvent) and not _in_valid_group(event.group_id):
         return
-
-    # 统计 TF-IDF
-    add_into_dict(raw_text)
-
-    # 解析命令
-    parts = raw_text.split(" ", 1)
-    cmd = parts[0]
-    content = parts[1].strip() if len(parts) > 1 else ""
-
-    # ---- 查看帮助 ----
-    if cmd == "查看帮助":
-        await send("你可以使用以下功能：\n" + "\n".join(sorted(_HELP_TIPS)))
+    user_id = _get_user_id(event)
+    if user_id not in _add_db_qq_list:
         return
-
-    # ---- ping ----
-    if cmd == "ping" and not content:
-        await send("pong")
+    key = _add_db_qq_list.pop(user_id)
+    if key == "太阳":
+        await _dict_callback.finish("未知错误")
         return
+    buf = json.dumps(str(event.get_message()))
+    m = qun_db.get_string_map_string("data")
+    m[key] = buf
+    qun_db.set("data", m)
+    qun_db.save()
+    await _dict_callback.finish("编辑词条成功")
 
-    # ---- roll ----
-    if cmd == "roll":
-        if not content:
-            await send(f"roll: {random.randint(0, 99)}")
-        else:
-            try:
-                upper = int(content)
-                if upper > 0:
-                    await send(f"roll: {random.randint(1, upper)}")
-            except ValueError:
-                pass
-        return
 
-    # ---- 8421 (药水表) ----
-    if cmd == "8421" and not content:
+# ====================== 命令处理器（priority=10） ======================
+
+# ---- 查看帮助 ----
+_help_cmd = on_command("查看帮助", rule=_valid_group_rule, priority=10, block=True)
+
+
+@_help_cmd.handle()
+async def _handle_help():
+    await _help_cmd.finish("你可以使用以下功能：\n" + "\n".join(sorted(_HELP_TIPS)))
+
+
+# ---- ping ----
+_ping_cmd = on_command("ping", rule=_valid_group_rule, priority=10, block=True)
+
+
+@_ping_cmd.handle()
+async def _handle_ping(args=CommandArg()):
+    content = args.extract_plain_text().strip()
+    if not content:
+        await _ping_cmd.finish("pong")
+
+
+# ---- roll ----
+_roll_cmd = on_command("roll", rule=_valid_group_rule, priority=10, block=True)
+
+
+@_roll_cmd.handle()
+async def _handle_roll(args=CommandArg()):
+    content = args.extract_plain_text().strip()
+    if not content:
+        await _roll_cmd.finish(f"roll: {random.randint(0, 99)}")
+    else:
+        try:
+            upper = int(content)
+            if upper > 0:
+                await _roll_cmd.finish(f"roll: {random.randint(1, upper)}")
+        except ValueError:
+            pass
+
+
+# ---- 8421 (药水表) ----
+_potion_cmd = on_command("8421", rule=_valid_group_rule, priority=10, block=True)
+
+
+@_potion_cmd.handle()
+async def _handle_potion(event: Event, args=CommandArg()):
+    content = args.extract_plain_text().strip()
+    if not content:
         result = calculate_potion()
         if result:
-            await send(_make_image_or_text(result, is_console=is_console))
-        return
+            await _potion_cmd.finish(_make_image_or_text(result, event))
 
-    # ---- 等级压制 ----
-    if cmd == "等级压制" and content:
+
+# ---- 等级压制 ----
+_exp_damage_cmd = on_command("等级压制", rule=_valid_group_rule, priority=10, block=True)
+
+
+@_exp_damage_cmd.handle()
+async def _handle_exp_damage(args=CommandArg()):
+    content = args.extract_plain_text().strip()
+    if content:
         result = calculate_exp_damage(content)
         if result:
-            await send(result)
-        return
+            await _exp_damage_cmd.finish(result)
 
-    # ---- 生成表格 ----
-    if cmd == "生成表格" and content:
+
+# ---- 生成表格 ----
+_gen_table_cmd = on_command("生成表格", rule=_valid_group_rule, priority=10, block=True)
+
+
+@_gen_table_cmd.handle()
+async def _handle_gen_table(event: Event, args=CommandArg()):
+    content = args.extract_plain_text().strip()
+    if content:
         result = gen_table(content)
         if result:
-            await send(_make_image_or_text(result, is_console=is_console))
-        return
+            await _gen_table_cmd.finish(_make_image_or_text(result, event))
 
-    # ---- 升级经验 ----
-    if cmd == "升级经验":
-        if not content:
-            result = calculate_level_exp()
-            if result:
-                await send(_make_image_or_text(result, is_console=is_console))
-        else:
-            p = content.split(" ", 1)
-            if len(p) == 2:
-                try:
-                    start, end = int(p[0]), int(p[1])
-                    result = calculate_exp_between_level(start, end)
-                    if result:
-                        await send(result)
-                except ValueError:
-                    pass
-        return
 
-    # ---- 爆炸次数 ----
-    if cmd == "爆炸次数":
-        msgs = calculate_boom_count(content or "", new_kms=True)
-        msgs += calculate_boom_count(content or "", new_kms=False)
-        for msg in msgs:
-            await send(msg)
-        return
+# ---- 升级经验 ----
+_level_exp_cmd = on_command("升级经验", rule=_valid_group_rule, priority=10, block=True)
 
-    # ---- 神秘压制 ----
-    if cmd == "神秘压制" and not content:
+
+@_level_exp_cmd.handle()
+async def _handle_level_exp(event: Event, args=CommandArg()):
+    content = args.extract_plain_text().strip()
+    if not content:
+        result = calculate_level_exp()
+        if result:
+            await _level_exp_cmd.finish(_make_image_or_text(result, event))
+    else:
+        p = content.split(" ", 1)
+        if len(p) == 2:
+            try:
+                start, end = int(p[0]), int(p[1])
+                result = calculate_exp_between_level(start, end)
+                if result:
+                    await _level_exp_cmd.finish(result)
+            except ValueError:
+                pass
+
+
+# ---- 爆炸次数 ----
+_boom_cmd = on_command("爆炸次数", rule=_valid_group_rule, priority=10, block=True)
+
+
+@_boom_cmd.handle()
+async def _handle_boom(args=CommandArg()):
+    content = args.extract_plain_text().strip()
+    msgs = calculate_boom_count(content or "", new_kms=True)
+    msgs += calculate_boom_count(content or "", new_kms=False)
+    for msg in msgs:
+        await _boom_cmd.send(msg)
+    await _boom_cmd.finish()
+
+
+# ---- 神秘压制 ----
+_arc_cmd = on_command("神秘压制", rule=_valid_group_rule, priority=10, block=True)
+
+
+@_arc_cmd.handle()
+async def _handle_arc(event: Event, args=CommandArg()):
+    content = args.extract_plain_text().strip()
+    if not content:
         result = get_more_damage_arc()
         if result:
-            await send(_make_image_or_text(result, is_console=is_console))
-        return
+            await _arc_cmd.finish(_make_image_or_text(result, event))
 
-    # ---- 模拟升星 / 模拟上星 / 升星期望 / 上星期望 ----
-    for sf_cmd in ("模拟升星", "模拟上星", "升星期望", "上星期望"):
-        if cmd in (sf_cmd, sf_cmd + "旧"):
-            new_kms = not cmd.endswith("旧")
-            if not content:
-                await send("命令格式：\r\n模拟升星 200 0 22\r\n后面可以加：七折、减爆、保护")
-            else:
-                result = calculate_star_force(new_kms, content)
-                for msg in result:
-                    await send(msg)
-            return
 
-    # ---- 洗魔方 ----
-    if cmd == "洗魔方":
-        result = calculate_cube_all() if not content else calculate_cube(content)
+# ---- 模拟升星 / 模拟上星 / 升星期望 / 上星期望 ----
+_star_force_cmd = on_command(
+    "模拟升星",
+    aliases={"模拟上星", "升星期望", "上星期望", "模拟升星旧", "模拟上星旧", "升星期望旧", "上星期望旧"},
+    rule=_valid_group_rule,
+    priority=10,
+    block=True,
+)
+
+
+@_star_force_cmd.handle()
+async def _handle_star_force(cmd: tuple[str, ...] = Command(), args=CommandArg()):
+    cmd_name = cmd[0]
+    new_kms = not cmd_name.endswith("旧")
+    content = args.extract_plain_text().strip()
+    if not content:
+        await _star_force_cmd.finish("命令格式：\r\n模拟升星 200 0 22\r\n后面可以加：七折、减爆、保护")
+    else:
+        result = calculate_star_force(new_kms, content)
         for msg in result:
-            await send(msg)
-        return
+            await _star_force_cmd.send(msg)
+        await _star_force_cmd.finish()
 
-    # ---- 查询我 ----
-    if cmd == "查询我" and not content:
+
+# ---- 洗魔方 ----
+_cube_cmd = on_command("洗魔方", rule=_valid_group_rule, priority=10, block=True)
+
+
+@_cube_cmd.handle()
+async def _handle_cube(args=CommandArg()):
+    content = args.extract_plain_text().strip()
+    result = calculate_cube_all() if not content else calculate_cube(content)
+    for msg in result:
+        await _cube_cmd.send(msg)
+    await _cube_cmd.finish()
+
+
+# ---- 查询我 ----
+_query_me_cmd = on_command("查询我", rule=_valid_group_rule, priority=10, block=True)
+
+
+@_query_me_cmd.handle()
+async def _handle_query_me(event: Event, args=CommandArg()):
+    content = args.extract_plain_text().strip()
+    if not content:
+        user_id = _get_user_id(event)
         data = find_role_data.get_string_map_string("data")
         name = data.get(str(user_id), "")
         if not name:
-            await send("你还未绑定")
+            await _query_me_cmd.finish("你还未绑定")
         else:
-            msgs = await find_role(name)
-            for msg in msgs:
-                await send(msg)
-        return
+            result = await find_role(name)
+            if _is_console(event) and not isinstance(result, str):
+                await _query_me_cmd.finish(result.extract_plain_text())
+            else:
+                await _query_me_cmd.finish(result)
 
-    # ---- 查询 游戏名 ----
-    if cmd == "查询" and content and " " not in content:
-        msgs = await find_role(content)
-        for msg in msgs:
-            await send(msg)
-        return
 
-    # ---- 查询绑定 QQ号 ----
-    if cmd == "查询绑定" and content:
+# ---- 查询绑定 QQ号 ----
+_query_bind_cmd = on_command("查询绑定", rule=_valid_group_rule, priority=10, block=True)
+
+
+@_query_bind_cmd.handle()
+async def _handle_query_bind(args=CommandArg()):
+    content = args.extract_plain_text().strip()
+    if content:
         try:
             qq = int(content)
             data = find_role_data.get_string_map_string("data")
             name = data.get(str(qq), "")
             if name:
-                await send(f"该玩家绑定了：{name}")
+                await _query_bind_cmd.finish(f"该玩家绑定了：{name}")
             else:
-                await send("该玩家还未绑定")
+                await _query_bind_cmd.finish("该玩家还未绑定")
         except ValueError:
-            await send("命令格式：查询绑定 QQ号")
-        return
+            await _query_bind_cmd.finish("命令格式：查询绑定 QQ号")
 
-    # ---- 绑定 ----
-    if cmd == "绑定" and content and " " not in content:
+
+# ---- 查询词条 / 搜索词条 ----
+_search_dict_cmd = on_command(
+    "查询词条", aliases={"搜索词条"}, rule=_valid_group_rule, priority=10, block=True,
+)
+
+
+@_search_dict_cmd.handle()
+async def _handle_search_dict(args=CommandArg()):
+    content = args.extract_plain_text().strip()
+    key = _deal_key(content)
+    if key:
+        await _deal_search_dict(_search_dict_cmd, key)
+
+
+# ---- 查询 游戏名 ----
+_query_cmd = on_command("查询", rule=_valid_group_rule, priority=10, block=True)
+
+
+@_query_cmd.handle()
+async def _handle_query(event: Event, args=CommandArg()):
+    content = args.extract_plain_text().strip()
+    if content and " " not in content:
+        result = await find_role(content)
+        if _is_console(event) and not isinstance(result, str):
+            await _query_cmd.finish(result.extract_plain_text())
+        else:
+            await _query_cmd.finish(result)
+
+
+# ---- 绑定 ----
+_bind_cmd = on_command("绑定", rule=_valid_group_rule, priority=10, block=True)
+
+
+@_bind_cmd.handle()
+async def _handle_bind(event: Event, args=CommandArg()):
+    content = args.extract_plain_text().strip()
+    if content and " " not in content:
+        user_id = _get_user_id(event)
         data = find_role_data.get_string_map_string("data")
         uid = str(user_id)
         if uid in data and data[uid]:
-            await send("你已经绑定过了，如需更换请先解绑")
+            await _bind_cmd.finish("你已经绑定过了，如需更换请先解绑")
         else:
             data[uid] = content
             find_role_data.set("data", data)
             find_role_data.save()
-            await send("绑定成功")
-        return
+            await _bind_cmd.finish("绑定成功")
 
-    # ---- 解绑 ----
-    if cmd == "解绑" and not content:
+
+# ---- 解绑 ----
+_unbind_cmd = on_command("解绑", rule=_valid_group_rule, priority=10, block=True)
+
+
+@_unbind_cmd.handle()
+async def _handle_unbind(event: Event, args=CommandArg()):
+    content = args.extract_plain_text().strip()
+    if not content:
+        user_id = _get_user_id(event)
         data = find_role_data.get_string_map_string("data")
         uid = str(user_id)
         if uid in data and data[uid]:
             del data[uid]
             find_role_data.set("data", data)
             find_role_data.save()
-            await send("解绑成功")
+            await _unbind_cmd.finish("解绑成功")
         else:
-            await send("你还未绑定")
-        return
+            await _unbind_cmd.finish("你还未绑定")
 
-    # ---- 我要开车 / 订阅开车 / 取消订阅 ----
-    if cmd == "我要开车":
-        if is_console:
-            await send("（Console 调试模式不支持开车功能，需要 OneBot V11 环境）")
-        elif bot and event:
-            result = await handle_boss_party(bot, event, _BOSS_LIST, content)
-            if result:
-                await send(result)
-        return
-    if cmd == "订阅开车":
-        result = handle_subscribe(_BOSS_LIST, content, user_id)
+
+# ---- 我要开车 ----
+_kaiche_cmd = on_command("我要开车", rule=_valid_group_rule, priority=10, block=True)
+
+
+@_kaiche_cmd.handle()
+async def _handle_kaiche(bot: Bot, event: Event, args=CommandArg()):
+    content = args.extract_plain_text().strip()
+    if _is_console(event):
+        await _kaiche_cmd.finish("（Console 调试模式不支持开车功能，需要 OneBot V11 环境）")
+    elif isinstance(bot, V11Bot) and isinstance(event, GroupMessageEvent):
+        result = await handle_boss_party(bot, event, _BOSS_LIST, content)
         if result:
-            await send(result)
-        return
-    if cmd == "取消订阅":
-        result = handle_unsubscribe(_BOSS_LIST, content, user_id)
-        if result:
-            await send(result)
-        return
+            await _kaiche_cmd.finish(result)
 
-    # ---- 词条操作（搜索/添加/修改/删除）----
-    if raw_text.startswith("查询词条 ") or raw_text.startswith("搜索词条 "):
-        key = _deal_key(raw_text[5:])
-        if key:
-            await _deal_search_dict(send, key)
+
+# ---- 订阅开车 ----
+_subscribe_cmd = on_command("订阅开车", rule=_valid_group_rule, priority=10, block=True)
+
+
+@_subscribe_cmd.handle()
+async def _handle_subscribe(event: Event, args=CommandArg()):
+    content = args.extract_plain_text().strip()
+    user_id = _get_user_id(event)
+    result = handle_subscribe(_BOSS_LIST, content, user_id)
+    if result:
+        await _subscribe_cmd.finish(result)
+
+
+# ---- 取消订阅 ----
+_unsubscribe_cmd = on_command("取消订阅", rule=_valid_group_rule, priority=10, block=True)
+
+
+@_unsubscribe_cmd.handle()
+async def _handle_unsubscribe(event: Event, args=CommandArg()):
+    content = args.extract_plain_text().strip()
+    user_id = _get_user_id(event)
+    result = handle_unsubscribe(_BOSS_LIST, content, user_id)
+    if result:
+        await _unsubscribe_cmd.finish(result)
+
+
+# ---- 添加词条（管理员） ----
+_add_dict_cmd = on_command("添加词条", rule=_valid_group_rule, priority=10, block=True)
+
+
+@_add_dict_cmd.handle()
+async def _handle_add_dict(bot: Bot, event: Event, args=CommandArg()):
+    if not await _is_admin(bot, event):
         return
+    content = args.extract_plain_text().strip()
+    key = _deal_key(content)
+    if key:
+        user_id = _get_user_id(event)
+        await _deal_add_dict(_add_dict_cmd, user_id, key)
 
-    if is_admin:
-        if raw_text.startswith("添加词条 "):
-            key = _deal_key(raw_text[5:])
-            if key:
-                await _deal_add_dict(send, user_id, key)
-            return
-        if raw_text.startswith("修改词条 "):
-            key = _deal_key(raw_text[5:])
-            if key:
-                await _deal_modify_dict(send, user_id, key)
-            return
-        if raw_text.startswith("删除词条 "):
-            key = _deal_key(raw_text[5:])
-            if key:
-                await _deal_remove_dict(send, key)
-            return
 
-    # ---- 词条调用（模糊匹配）----
+# ---- 修改词条（管理员） ----
+_modify_dict_cmd = on_command("修改词条", rule=_valid_group_rule, priority=10, block=True)
+
+
+@_modify_dict_cmd.handle()
+async def _handle_modify_dict(bot: Bot, event: Event, args=CommandArg()):
+    if not await _is_admin(bot, event):
+        return
+    content = args.extract_plain_text().strip()
+    key = _deal_key(content)
+    if key:
+        user_id = _get_user_id(event)
+        await _deal_modify_dict(_modify_dict_cmd, user_id, key)
+
+
+# ---- 删除词条（管理员） ----
+_delete_dict_cmd = on_command("删除词条", rule=_valid_group_rule, priority=10, block=True)
+
+
+@_delete_dict_cmd.handle()
+async def _handle_delete_dict(bot: Bot, event: Event, args=CommandArg()):
+    if not await _is_admin(bot, event):
+        return
+    content = args.extract_plain_text().strip()
+    key = _deal_key(content)
+    if key:
+        await _deal_remove_dict(_delete_dict_cmd, key)
+
+
+# ====================== 词条模糊匹配（最低优先级） ======================
+_dict_fallback = on_message(priority=20, block=False)
+
+
+@_dict_fallback.handle()
+async def _handle_dict_fallback(event: Event):
+    if isinstance(event, GroupMessageEvent) and not _in_valid_group(event.group_id):
+        return
+    raw_text = event.get_plaintext().strip()
+    if not raw_text:
+        return
     m = qun_db.get_string_map_string("data")
     s = get_familiar_value(m, _deal_key(raw_text))
     if s:
-        await send(s)
-
-
-# ====================== OneBot V11 Handler ======================
-@group_msg.handle()
-async def handle_group(bot: V11Bot, event: GroupMessageEvent):
-    if not _in_valid_group(event.group_id):
-        return
-
-    raw_text = event.get_plaintext().strip()
-    user_id = event.user_id
-
-    # 判断管理员权限
-    from maplebot.utils.perm import is_admin as _is_admin_v11
-    admin = await _is_admin_v11(bot, event.group_id, user_id)
-
-    async def send(msg: Any) -> None:
-        await bot.send(event, msg)
-
-    await _dispatch(
-        send, raw_text, user_id, event.get_message(),
-        is_console=False, is_admin=admin,
-        bot=bot, event=event,
-    )
-
-
-# ====================== Console Handler ======================
-if _HAS_CONSOLE:
-    @console_msg.handle()
-    async def handle_console(bot: ConsoleBot, event: ConsoleMessageEvent):
-        raw_text = event.get_plaintext().strip()
-        user_id = 0  # Console 调试用户
-
-        async def send(msg: Any) -> None:
-            # Console 适配器：只能发纯文本
-            text = msg if isinstance(msg, str) else str(msg)
-            await bot.send(event, ConSeg.text(text))
-
-        # Console 模式视为管理员，方便调试
-        await _dispatch(
-            send, raw_text, user_id, event.get_message(),
-            is_console=True, is_admin=True,
-        )
+        await _dict_fallback.finish(s)
 
 
 # ====================== 词条 CRUD ======================
-async def _deal_add_dict(send: SendFunc, user_id: int, key: str):
+async def _deal_add_dict(matcher, user_id: int, key: str):
     if "." in key:
-        await send("词条名称中不能包含 . 符号")
+        await matcher.finish("词条名称中不能包含 . 符号")
         return
     if key == "太阳":
-        await send("未知错误")
+        await matcher.finish("未知错误")
         return
     m = qun_db.get_string_map_string("data")
     if key in m:
-        await send("词条已存在")
+        await matcher.finish("词条已存在")
     else:
-        await send("请输入要添加的内容")
+        await matcher.send("请输入要添加的内容")
         _add_db_qq_list[user_id] = key
 
 
-async def _deal_modify_dict(send: SendFunc, user_id: int, key: str):
+async def _deal_modify_dict(matcher, user_id: int, key: str):
     m = qun_db.get_string_map_string("data")
     if key not in m:
-        await send("词条不存在")
+        await matcher.finish("词条不存在")
     else:
-        await send("请输入要修改的内容")
+        await matcher.send("请输入要修改的内容")
         _add_db_qq_list[user_id] = key
 
 
-async def _deal_remove_dict(send: SendFunc, key: str):
+async def _deal_remove_dict(matcher, key: str):
     if key == "太阳":
-        await send("未知错误")
+        await matcher.finish("未知错误")
         return
     m = qun_db.get_string_map_string("data")
     if key not in m:
-        await send("词条不存在")
+        await matcher.finish("词条不存在")
         return
     del m[key]
     qun_db.set("data", m)
     qun_db.save()
-    await send("删除词条成功")
+    await matcher.finish("删除词条成功")
 
 
-async def _deal_search_dict(send: SendFunc, key: str):
+async def _deal_search_dict(matcher, key: str):
     m = qun_db.get_string_map_string("data")
     res = sorted([k for k in m if key in k])
     if res:
@@ -428,6 +578,6 @@ async def _deal_search_dict(send: SendFunc, key: str):
             res = res[:10]
             res[9] += f"\n等{num}个词条"
         lines = [f"{i + 1}. {r}" for i, r in enumerate(res)]
-        await send("搜索到以下词条：\n" + "\n".join(lines))
+        await matcher.finish("搜索到以下词条：\n" + "\n".join(lines))
     else:
-        await send(f"搜索不到词条({key})")
+        await matcher.finish(f"搜索不到词条({key})")
