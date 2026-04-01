@@ -63,9 +63,9 @@ def render_table(
     """
     n_cols = len(header)
     n_rows = len(data)
-    col_width = width / (n_cols * 80)
-    fig_w = max(col_width * n_cols, 4)
-    fig_h = max(0.4 * (n_rows + 1), 1.5)
+    col_width = width / (n_cols * 100)
+    fig_w = max(col_width * n_cols, 1)
+    fig_h = max(0.215 * (n_rows + 1), 1)
     fig, ax = plt.subplots(figsize=(fig_w, fig_h))
     ax.axis("off")
     fig.subplots_adjust(left=0, right=1, top=1, bottom=0)

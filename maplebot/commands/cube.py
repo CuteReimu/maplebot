@@ -515,7 +515,7 @@ def calculate_cube(s: str) -> list:
     try:
         img = render_table(
             header=[f"{item_level}级{label}", "（底色表示魔方颜色）"],
-            data=rows, width=400, cell_colors=row_colors,
+            data=rows, width=250, cell_colors=row_colors,
         )
         return [MessageSegment.image(f"base64://{img}")]
     except Exception as e:
