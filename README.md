@@ -72,6 +72,47 @@ pip install -r requirements.txt
 python bot.py
 ```
 
+## 打包与部署
+
+### 打包
+
+```bash
+# 基本用法（版本号默认为当前GMT时间）
+bash pack.sh
+
+# 指定版本号
+bash pack.sh 1.0.0
+```
+
+脚本会将以下内容打包进 `dist/maplebot-<版本号>.tar.gz`：
+
+| 内容                 | 说明     |
+|--------------------|--------|
+| `bot.py`           | 主入口    |
+| `maplebot/`        | 源码包    |
+| `requirements.txt` | 依赖清单   |
+| `.env.prod`        | 配置模板   |
+| `start.sh`         | 一键启动脚本 |
+
+### 部署
+
+```bash
+tar -xzf maplebot-1.0.0.tar.gz
+cd maplebot-1.0.0
+
+# 按需修改生产配置
+# 首次运行前编辑 .env.prod，填入真实的 HOST/PORT/ONEBOT_WS_URLS 等
+vim .env.prod
+
+# 安装依赖
+pip install --quiet -r requirements.txt
+
+# 启动（脚本会自动安装依赖并以 prod 模式运行）
+bash start.sh
+```
+
+`start.sh` 会自动设置 `ENVIRONMENT=prod`，
+
 ## 支持的命令
 
 - `查看帮助` - 显示帮助列表

@@ -9,6 +9,7 @@
 venv/
 .venv/
 __pycache__/
+/dist/
 
 /player_data/
 /data/
