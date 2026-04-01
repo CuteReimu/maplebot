@@ -2,6 +2,7 @@
 # pylint: disable=wrong-import-position
 from __future__ import annotations
 
+import os
 import random
 from typing import Any
 
@@ -600,13 +601,14 @@ async def _cron_find_role():
         await _notify_scrape_failure()
 
 
-for _hour in (1, 9, 15):
-    scheduler.add_job(
-        _cron_find_role,
-        "cron",
-        hour=_hour,
-        minute=0,
-        second=0,
-        id=f"find_role_bg_{_hour:02d}",
-        timezone="Asia/Shanghai",
-    )
+if os.getenv("ENVIRONMENT", "dev").lower() == "prod":
+    for _hour in (1, 9, 15):
+        scheduler.add_job(
+            _cron_find_role,
+            "cron",
+            hour=_hour,
+            minute=0,
+            second=0,
+            id=f"find_role_bg_{_hour:02d}",
+            timezone="Asia/Shanghai",
+        )
