@@ -26,7 +26,7 @@ def assert_player_onrank(name):
         response = httpx.get(url, timeout=20)
         data = response.json()
     except Exception as e:
-        print(f"Error fetching data for {name}: {e}")
+        logging.error(f"Error fetching data for {name}: {e}")
         return True  # Assume online if error occurs
 
     count = data['totalCount'] if data is not None else 1  # Make no conclusion if error occurs
@@ -44,9 +44,8 @@ def try_request(url, name, retries=3, wait=10):
             break
         except Exception as e:
             status = response.status_code if response is not None else 'N/A'
-            print(f"Error fetching player data for {name}: {e}, retrying ({retry + 1}/3)..., request status: {status}")
+            logging.warning(f"Error fetching player data for {name}: {e}, retrying ({retry + 1}/3)..., request status: {status}")
             if retry == 2:
-                print(f"Waiting for {wait} seconds before retrying...")
                 logging.warning(f"Fetch is too fast, waiting for {wait} seconds")
                 time.sleep(wait)
             continue
@@ -65,7 +64,7 @@ def request_from_name_list():
             player_dict['img'] = ""
 
         if i % 50 == 0:
-            print(f"Processing player {i}...")
+            logging.info(f"Processing player {i}...")
 
         data = try_request(LEGION_URL, name)
         count = data['totalCount'] if data is not None else 0
@@ -81,7 +80,6 @@ def request_from_name_list():
                 if time_in_days > 3:
                     names_to_del.append(name)
                     del names_dict[name]
-                print(f"Player {name} does not exist for {time_in_days} days.")
                 logging.info(f"Player {name} does not exist for {time_in_days} days.")
                 time.sleep(SLEEP_PER_REQUEST * 2)  # Avoid hitting rate limits
                 continue
@@ -151,6 +149,5 @@ async def scrape_role_background():
     logging.info("Starting data scrape...")
     request_from_name_list()
     end = time.time()
-    print(f"Total time taken: {(end - sta) / 60} minutes")
-    print("Done")
+    logging.info(f"Total time taken: {(end - sta) / 60} minutes")
     logging.info(f"Data scrape completed in {(end - sta) / 60} minutes")
