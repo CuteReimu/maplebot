@@ -54,7 +54,7 @@ def _save_yaml(path: str, data: dict) -> None:
 
 
 class YamlStore:
-    """简单的 YAML 文件读写封装，替代 Go 版的 viper 实例"""
+    """简单的 YAML 文件读写封装"""
 
     def __init__(self, directory: str, name: str, defaults: dict | None = None):
         self.path = os.path.join(directory, f"{name}.yml")
