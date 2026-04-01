@@ -2,7 +2,7 @@
 import random
 
 import numpy as np
-from nonebot.adapters.onebot.v11 import MessageSegment
+from nonebot.adapters.onebot.v11 import Message, MessageSegment
 from nonebot.log import logger
 
 from maplebot.utils.charts import render_pie
@@ -440,9 +440,8 @@ def calculate_star_force(new_kms: bool, content: str) -> list:
         f"，有{no_boom * 100:.2f}%的概率一次都不炸"
     )
 
-    result: list = [s]
-
     # 画饼图
+    pie_img_seg = None
     if des > cur + 1 and des > 12 and midway:
         all_values = midway + [mesos]
         pie_labels = []
@@ -475,8 +474,11 @@ def calculate_star_force(new_kms: bool, content: str) -> list:
             pie_values = [v / divisor for v in pie_values]
             try:
                 img = render_pie(pie_values, pie_labels, unit=unit)
-                result.append(MessageSegment.image(f"base64://{img}"))
+                pie_img_seg = MessageSegment.image(f"base64://{img}")
             except Exception as e:
                 logger.error("render chart failed: %s", e)
 
-    return result
+    # 将文字和饼图合并为一条消息
+    if pie_img_seg is not None:
+        return [Message(MessageSegment.text(s) + pie_img_seg)]
+    return [s]

@@ -102,29 +102,63 @@ def render_pie(
     title: str = "",
     unit: str = "",
 ) -> str:
-    """渲染饼图为 base64 PNG 图片"""
+    """渲染饼图为 base64 PNG 图片。
+
+    使用图例（legend）显示标签，避免小区块文字重叠。
+    占比 >= 3% 的区块在扇形内部显示数值；更小的区块不显示内部文字。
+    """
+    total = sum(values) or 1
+    _MIN_PCT_LABEL = 3.0  # 低于此占比的扇形不在内部显示文字
+
     fig, ax = plt.subplots(figsize=(8, 6))
+    fig.subplots_adjust(left=0.0, right=0.75)  # 右侧留空放图例
 
-    def make_autopct(vals):
-        def autopct(pct):
-            idx = int(round(pct / 100.0 * sum(vals)))
-            # 找到最接近的索引
-            cumsum = 0
-            for i, v in enumerate(vals):
+    def _autopct(pct: float) -> str:
+        if pct < _MIN_PCT_LABEL:
+            return ""
+        if unit:
+            # 根据百分比反查对应的值
+            cumsum = 0.0
+            for v in values:
                 cumsum += v
-                if cumsum / sum(vals) * 100 >= pct - 0.5:
-                    idx = i
-                    break
-            return f"{vals[idx]:.1f}{unit}" if unit else f"{pct:.1f}%"
-        return autopct
+                if cumsum / total * 100 >= pct - 0.5:
+                    return f"{v:.1f}{unit}"
+            return f"{pct:.1f}%"
+        return f"{pct:.1f}%"
 
-    if unit:
-        ax.pie(values, labels=labels, autopct=make_autopct(values), startangle=90)
-    else:
-        ax.pie(values, labels=labels, autopct="%1.1f%%", startangle=90)
+    wedges, texts, autotexts = ax.pie(
+        values,
+        labels=None,          # 标签改用图例，避免在扇形旁重叠
+        autopct=_autopct,
+        pctdistance=0.75,
+        startangle=90,
+    )
+
+    # 内部文字字号稍小，避免拥挤
+    for at in autotexts:
+        at.set_fontsize(8)
+
+    # 用图例显示所有标签，图例放在图右侧
+    legend_labels = []
+    for i, (label, v) in enumerate(zip(labels, values)):
+        pct = v / total * 100
+        if unit:
+            legend_labels.append(f"{label}: {v:.1f}{unit} ({pct:.1f}%)")
+        else:
+            legend_labels.append(f"{label}: {pct:.1f}%")
+
+    ax.legend(
+        wedges,
+        legend_labels,
+        loc="center left",
+        bbox_to_anchor=(1.02, 0.5),
+        fontsize=8,
+        frameon=True,
+    )
 
     if title:
         ax.set_title(title)
+
     return _fig_to_base64(fig)
 
 
