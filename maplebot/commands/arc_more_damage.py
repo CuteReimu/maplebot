@@ -1,9 +1,8 @@
 """ARC 神秘压制"""
-import logging
+from nonebot.log import logger
 
 from maplebot.utils.charts import render_table
 
-logger = logging.getLogger("maplebot.arc")
 
 _BOSS_ARC = [
     ("Lucid", 360),

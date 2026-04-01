@@ -1,22 +1,18 @@
 """角色查询"""
 import base64
 import datetime
-import io
 import json
-import logging
 import math
 import os
 
 import httpx
-import matplotlib
-import matplotlib.pyplot as plt
 import numpy as np
 from nonebot.adapters.onebot.v11 import Message, MessageSegment
+from nonebot.log import logger
 
 from maplebot.utils.class_name import translate_class_name, translate_class_id
 from maplebot.utils.config import level_exp_data
 
-logger = logging.getLogger("maplebot.find_role")
 
 # ---------- 文件路径 ----------
 _PLAYER_DATA_DIR = "player_data"
@@ -109,8 +105,6 @@ def _days_to_level(dated_exps, current_exp, current_lvl, lvl_single):
 # ---------- 图表绘制 ----------
 def _draw_chart(days, dated_exps, dated_lvls) -> str:
     """绘制经验图表，返回 base64"""
-    matplotlib.use("Agg")
-
     t = 1e12
     bar_values = []
     colors = []
@@ -133,9 +127,15 @@ def _draw_chart(days, dated_exps, dated_lvls) -> str:
                 bar_values.append(v)
                 colors.append("#4d6bff")
 
-    x = np.arange(len(days))
     line_values = [v if v is not None else 0 for v in dated_lvls]
 
+    # 溢出标注：render_bar_line 不支持逐点文字标注，此处保留原始绘图逻辑
+    import io  # noqa: PLC0415
+    import matplotlib  # noqa: PLC0415
+    import matplotlib.pyplot as plt  # noqa: PLC0415
+    matplotlib.use("Agg")
+
+    x = np.arange(len(days))
     bg = "#050816"
     fig, ax1 = plt.subplots(figsize=(10, 5))
     fig.patch.set_facecolor(bg)
@@ -145,11 +145,11 @@ def _draw_chart(days, dated_exps, dated_lvls) -> str:
     ax1.set_xticks(x)
     ax1.set_xticklabels(days, rotation=60, fontsize=10)
     ax1.set_ylim(0, 10)
-    ax1.yaxis.set_major_formatter(lambda x, _: f"{x:.0f}T")
+    ax1.yaxis.set_major_formatter(plt.FuncFormatter(lambda v, _: f"{v:.0f}T"))
 
     ax2 = ax1.twinx()
     ax2.plot(x, line_values, marker="o", linewidth=2, markersize=5, color="#9bff7a", zorder=4)
-    ax2.yaxis.set_major_formatter(lambda x, _: f"{x:.2f}")
+    ax2.yaxis.set_major_formatter(plt.FuncFormatter(lambda v, _: f"{v:.2f}"))
 
     # 溢出标注
     for i, (val, bv) in enumerate(zip(raw_exps, bar_values)):

@@ -1,11 +1,9 @@
 """Boss 开车订阅"""
-import logging
-
 from nonebot.adapters.onebot.v11 import Bot, GroupMessageEvent, MessageSegment
+from nonebot.log import logger
 
 from maplebot.utils import db
 
-logger = logging.getLogger("maplebot.boss_party")
 
 
 def _get_boss_chars(boss_list: list[str], input_str: str) -> list[str]:

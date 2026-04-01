@@ -1,7 +1,6 @@
 """maplebot 主插件 - NoneBot2 命令路由"""
 from __future__ import annotations
 
-import logging
 import random
 from typing import Any
 
@@ -12,7 +11,7 @@ from nonebot.adapters.onebot.v11 import (
     GroupMessageEvent,
     MessageSegment as V11Seg,
 )
-from nonebot.log import logger as nb_logger
+from nonebot.log import logger
 from nonebot.params import CommandArg, Command
 from nonebot.rule import Rule
 
@@ -22,32 +21,32 @@ try:
     )
     _HAS_CONSOLE = True
 except ImportError:
+    ConsoleMessageEvent = None  # type: ignore[assignment, misc]
     _HAS_CONSOLE = False
 
+# NoneBot2 要求在 require 之后再导入插件模块
 require("nonebot_plugin_apscheduler")
-from nonebot_plugin_apscheduler import scheduler
-from maplebot.commands.arc_more_damage import get_more_damage_arc
-from maplebot.commands.boss_party import (
+from nonebot_plugin_apscheduler import scheduler  # noqa: E402
+from maplebot.commands.arc_more_damage import get_more_damage_arc  # noqa: E402
+from maplebot.commands.boss_party import (  # noqa: E402
     handle_boss_party,
     handle_subscribe,
     handle_unsubscribe,
 )
-from maplebot.commands.cube import calculate_cube, calculate_cube_all
-from maplebot.commands.find_role import find_role
-from maplebot.commands.scrape import scrape_role_background
-from maplebot.commands.level_exp import (
+from maplebot.commands.cube import calculate_cube, calculate_cube_all  # noqa: E402
+from maplebot.commands.find_role import find_role  # noqa: E402
+from maplebot.commands.scrape import scrape_role_background  # noqa: E402
+from maplebot.commands.level_exp import (  # noqa: E402
     calculate_level_exp,
     calculate_exp_between_level,
     calculate_exp_damage,
 )
-from maplebot.commands.star_force import calculate_star_force, calculate_boom_count
-from maplebot.utils.config import config, qun_db, find_role_data
-from maplebot.utils.dict_tfidf import get_familiar_value, add_into_dict
-from maplebot.utils.dict_entry import serialize_message, build_message
+from maplebot.commands.star_force import calculate_star_force, calculate_boom_count  # noqa: E402
+from maplebot.utils.config import config, qun_db, find_role_data  # noqa: E402
+from maplebot.utils.dict_tfidf import get_familiar_value, add_into_dict  # noqa: E402
+from maplebot.utils.dict_entry import serialize_message, build_message  # noqa: E402
 
-require("nonebot_plugin_apscheduler")
-logger = logging.getLogger("maplebot.plugin")
-nb_logger.opt(colors=True).info("<green>✅ maplebot_main 插件加载成功！</green>")
+logger.opt(colors=True).info("<green>✅ maplebot_main 插件加载成功！</green>")
 
 # ---------- 待添加词条队列 ----------
 _add_db_qq_list: dict[int, str] = {}
@@ -100,7 +99,7 @@ def _get_user_id(event: Event) -> int:
 
 
 def _is_console(event: Event) -> bool:
-    return _HAS_CONSOLE and isinstance(event, ConsoleMessageEvent)
+    return _HAS_CONSOLE and ConsoleMessageEvent is not None and isinstance(event, ConsoleMessageEvent)
 
 
 def _make_image_or_text(s: str, event: Event) -> Any:
@@ -566,19 +565,18 @@ async def _deal_search_dict(matcher, key: str):
 
 
 # ====================== 定时任务：角色数据预抓取 ======================
-@scheduler.scheduled_job("cron", hour=1, minute=0, second=0, id="find_role_bg_01", timezone="Asia/Shanghai")
-async def _cron_find_role_01():
-    logger.info("[cron 01:00] 开始角色数据预抓取")
+async def _cron_find_role():
+    logger.info("[cron] 开始角色数据预抓取")
     await scrape_role_background()
 
 
-@scheduler.scheduled_job("cron", hour=9, minute=0, second=0, id="find_role_bg_09", timezone="Asia/Shanghai")
-async def _cron_find_role_09():
-    logger.info("[cron 09:00] 开始角色数据预抓取")
-    await scrape_role_background()
-
-
-@scheduler.scheduled_job("cron", hour=15, minute=0, second=0, id="find_role_bg_15", timezone="Asia/Shanghai")
-async def _cron_find_role_15():
-    logger.info("[cron 15:00] 开始角色数据预抓取")
-    await scrape_role_background()
+for _hour in (1, 9, 15):
+    scheduler.add_job(
+        _cron_find_role,
+        "cron",
+        hour=_hour,
+        minute=0,
+        second=0,
+        id=f"find_role_bg_{_hour:02d}",
+        timezone="Asia/Shanghai",
+    )

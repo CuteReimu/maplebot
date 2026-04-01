@@ -1,13 +1,12 @@
 """魔方概率计算"""
 import json
-import logging
 import os
 
 from nonebot.adapters.onebot.v11 import MessageSegment
+from nonebot.log import logger
 
 from maplebot.utils.charts import render_table
-
-logger = logging.getLogger("maplebot.cube")
+from maplebot.utils.format_utils import format_int64
 
 # ---------- 加载 cubeRates.json ----------
 _DATA_DIR = os.path.join(os.path.dirname(os.path.dirname(__file__)), "data")
@@ -52,32 +51,23 @@ _ACCESSORY_SEL = _DEFAULT_SEL + [
     "lineMeso+3", "lineDrop+3",
     "lineMeso+1&lineStat+1", "lineDrop+1&lineStat+1", "lineMesoOrDrop+1&lineStat+1",
 ]
-_ACCESSORY_SEL_160 = _DEFAULT_SEL_160 + [
-    "lineMeso+1", "lineDrop+1", "lineMesoOrDrop+1",
-    "lineMeso+2", "lineDrop+2", "lineMesoOrDrop+2",
-    "lineMeso+3", "lineDrop+3",
-    "lineMeso+1&lineStat+1", "lineDrop+1&lineStat+1", "lineMesoOrDrop+1&lineStat+1",
-]
+_ACCESSORY_EXTRA = _ACCESSORY_SEL[len(_DEFAULT_SEL):]
+_ACCESSORY_SEL_160 = _DEFAULT_SEL_160 + _ACCESSORY_EXTRA
 
 _HAT_SEL = _DEFAULT_SEL + [
     "secCooldown+2", "secCooldown+3", "secCooldown+4", "secCooldown+5", "secCooldown+6",
     "secCooldown+2&lineStat+2",
     "secCooldown+2&lineStat+1", "secCooldown+3&lineStat+1", "secCooldown+4&lineStat+1",
 ]
-_HAT_SEL_160 = _DEFAULT_SEL_160 + [
-    "secCooldown+2", "secCooldown+3", "secCooldown+4", "secCooldown+5", "secCooldown+6",
-    "secCooldown+2&lineStat+2",
-    "secCooldown+2&lineStat+1", "secCooldown+3&lineStat+1", "secCooldown+4&lineStat+1",
-]
+_HAT_EXTRA = _HAT_SEL[len(_DEFAULT_SEL):]
+_HAT_SEL_160 = _DEFAULT_SEL_160 + _HAT_EXTRA
 
 _GLOVE_SEL = _DEFAULT_SEL + [
     "lineCritDamage+1", "lineCritDamage+2", "lineCritDamage+3",
     "lineCritDamage+1&lineStat+1", "lineCritDamage+1&lineStat+2", "lineCritDamage+2&lineStat+1",
 ]
-_GLOVE_SEL_160 = _DEFAULT_SEL_160 + [
-    "lineCritDamage+1", "lineCritDamage+2", "lineCritDamage+3",
-    "lineCritDamage+1&lineStat+1", "lineCritDamage+1&lineStat+2", "lineCritDamage+2&lineStat+1",
-]
+_GLOVE_EXTRA = _GLOVE_SEL[len(_DEFAULT_SEL):]
+_GLOVE_SEL_160 = _DEFAULT_SEL_160 + _GLOVE_EXTRA
 
 _WS_SEL = [
     "percAtt+18", "percAtt+21", "percAtt+24", "percAtt+30", "percAtt+33", "percAtt+36",
@@ -165,11 +155,6 @@ _CUBE_COST = {"red": 12_000_000, "black": 22_000_000, "master": 7_500_000}
 _TIER_NAMES = {0: "rare", 1: "epic", 2: "unique", 3: "legendary"}
 
 
-def _format_int64(i: int) -> str:
-    if abs(i) < 1_000_000_000_000:
-        return f"{i / 1_000_000_000:.2f}B"
-    return f"{i / 1_000_000_000_000:.2f}T"
-
 
 def _get_selection(name: str, item_level: int) -> list[str]:
     high = item_level >= 160
@@ -185,10 +170,6 @@ def _get_selection(name: str, item_level: int) -> list[str]:
         return _GLOVE_SEL_160 if high else _GLOVE_SEL
     return _DEFAULT_SEL_160 if high else _DEFAULT_SEL
 
-
-def _get_distr_quantile(p: float):
-    mean = 1 / p
-    return mean
 
 
 def _get_tier_costs(current_tier: int, desire_tier: int, cube_type: str) -> float:
@@ -436,7 +417,7 @@ def calculate_cube_all() -> list:
             else:
                 colors_row.append("#931598E0")  # 紫(黑魔方)
                 cost = black_cost
-            row.append(_format_int64(cost))
+            row.append(format_int64(cost))
             if it == "percStat+27":
                 costs_for_sort[s] = cost
         rows.append(row)
@@ -499,7 +480,7 @@ def calculate_cube(s: str) -> list:
     else:
         row_colors.append([None, "#931598E0"])
         e_cost = e_black
-    rows.append(["紫洗绿", _format_int64(e_cost)])
+    rows.append(["紫洗绿", format_int64(e_cost)])
 
     for it in selections:
         _, red_cost = _run_calculator(item_name, "red", 3, item_level, 3, it)
@@ -510,7 +491,7 @@ def calculate_cube(s: str) -> list:
         else:
             row_colors.append([None, "#931598E0"])
             cost = black_cost
-        rows.append([_format_stat_target(it), _format_int64(cost)])
+        rows.append([_format_stat_target(it), format_int64(cost)])
 
     try:
         img = render_table(

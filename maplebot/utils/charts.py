@@ -1,7 +1,6 @@
 """图表生成模块"""
 import base64
 import io
-import logging
 import os
 import sys
 
@@ -12,7 +11,6 @@ import numpy as np  # noqa: E402
 
 matplotlib.use("Agg")
 
-logger = logging.getLogger("maplebot.charts")
 
 # ---------- 中文字体加载 ----------
 _FONT_DIRS = {

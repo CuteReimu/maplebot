@@ -1,11 +1,9 @@
 """配置管理模块"""
-import logging
 import os
 
 import yaml
 from dynaconf import Dynaconf
-
-logger = logging.getLogger("maplebot.config")
+from nonebot.log import logger
 
 _CONFIG_DIR = os.path.join("config", "maplebot")
 _DATA_DIR = os.path.join("data", "maplebot")
@@ -107,4 +105,3 @@ class YamlStore:
 qun_db = YamlStore(_DATA_DIR, "QunDb")
 find_role_data = YamlStore(_DATA_DIR, "FindRoleData")
 level_exp_data = YamlStore(_DATA_DIR, "LevelExpData")
-class_image_data = YamlStore(_DATA_DIR, "ClassImageData")

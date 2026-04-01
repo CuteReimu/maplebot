@@ -4,14 +4,12 @@ from __future__ import annotations
 import base64
 import hashlib
 import json
-import logging
 import os
 from typing import Any
 
 import httpx
 from nonebot.adapters.onebot.v11 import Message as V11Message, MessageSegment as V11Seg
-
-logger = logging.getLogger("maplebot.dict_entry")
+from nonebot.log import logger
 
 # ---- 图片缓存目录（仅用于持久化原始文件，避免重复下载） ----
 _CACHE_DIR = "chat_images"

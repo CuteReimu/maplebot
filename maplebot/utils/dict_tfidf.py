@@ -1,5 +1,4 @@
 """基于 TF-IDF 的文本相似度计算"""
-import logging
 import math
 import re
 
@@ -7,7 +6,6 @@ import jieba
 
 from maplebot.utils import db
 
-logger = logging.getLogger("maplebot.dict_tfidf")
 
 _KEY_TF_PREFIX = "dict:tf:"
 _KEY_DF_PREFIX = "dict:df:"

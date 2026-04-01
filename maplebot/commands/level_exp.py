@@ -1,10 +1,9 @@
 """等级经验计算"""
-import logging
+from nonebot.log import logger
 
 from maplebot.utils.charts import render_table
 from maplebot.utils.config import level_exp_data
 
-logger = logging.getLogger("maplebot.level_exp")
 
 
 def _format_exp(exp: int | float) -> str:

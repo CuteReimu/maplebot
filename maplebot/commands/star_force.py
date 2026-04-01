@@ -1,13 +1,12 @@
 """升星模拟"""
-import logging
 import random
 
 import numpy as np
 from nonebot.adapters.onebot.v11 import MessageSegment
+from nonebot.log import logger
 
 from maplebot.utils.charts import render_pie
-
-logger = logging.getLogger("maplebot.star_force")
+from maplebot.utils.format_utils import format_int64
 
 # ---------- 概率表 ----------
 _RATES = [
@@ -104,11 +103,6 @@ def _get_max_star(new_kms: bool, item_level: int) -> int:
         return 20
     return 30 if new_kms else 25
 
-
-def _format_int64(i: int) -> str:
-    if abs(i) < 1_000_000_000_000:
-        return f"{i / 1_000_000_000:.2f}B"
-    return f"{i / 1_000_000_000_000:.2f}T"
 
 
 # ---------- Markov 链计算 ----------
@@ -335,6 +329,15 @@ def _perform_experiment(current_star, desired_star, new_kms, item_level,
 
 # ====================== 公开接口 ======================
 
+def _parse_flags(content: str) -> tuple[bool, bool, bool, bool]:
+    """解析标志位：(bp保护, to七折, ftf必成, be减爆)"""
+    bp = "保护" in content and "不保护" not in content
+    to = "七折" in content or "超必" in content or "超爆" in content
+    ftf = "必成" in content or "超必" in content
+    be = "超爆" in content or "防爆" in content or "减爆" in content
+    return bp, to, ftf, be
+
+
 def _build_title(bp, to, ftf, be) -> str:
     parts: list[str] = []
     if to and ftf:
@@ -355,10 +358,7 @@ def _build_title(bp, to, ftf, be) -> str:
 
 def calculate_boom_count(content: str, new_kms: bool) -> list:
     """爆炸次数统计饼图"""
-    bp = "保护" in content and "不保护" not in content
-    to = "七折" in content or "超必" in content or "超爆" in content
-    ftf = "必成" in content or "超必" in content
-    be = "超爆" in content or "防爆" in content or "减爆" in content
+    bp, to, ftf, be = _parse_flags(content)
 
     title = ("新" if new_kms else "旧") + "0-22星爆炸次数"
     title += _build_title(bp, to, ftf, be)
@@ -408,10 +408,7 @@ def calculate_star_force(new_kms: bool, content: str) -> list:
     if des > max_star:
         return [f"{item_level}级装备最多升到{max_star}星"]
 
-    bp = "保护" in content and "不保护" not in content
-    to = "七折" in content or "超必" in content or "超爆" in content
-    ftf = "必成" in content or "超必" in content
-    be = "超爆" in content or "防爆" in content or "减爆" in content
+    bp, to, ftf, be = _parse_flags(content)
 
     try:
         mesos, booms, no_boom, taps, midway = _cal_sf(
@@ -437,7 +434,7 @@ def calculate_star_force(new_kms: bool, content: str) -> list:
     s += "（GMS新规）" if new_kms else "（GMS旧规）"
     s += f"\n{cur}-{des}星"
     s += (
-        f"，平均花费了{_format_int64(int(mesos))}金币"
+        f"，平均花费了{format_int64(int(mesos))}金币"
         f"，平均炸了{booms:.2f}次"
         f"，平均点了{int(round(taps))}次"
         f"，有{no_boom * 100:.2f}%的概率一次都不炸"

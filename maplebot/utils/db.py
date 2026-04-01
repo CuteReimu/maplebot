@@ -1,10 +1,9 @@
 """KV 数据库"""
-import logging
 import os
 import shelve
 import threading
 
-logger = logging.getLogger("maplebot.db")
+from nonebot.log import logger
 
 _DB_DIR = os.path.join("assets", "database")
 os.makedirs(_DB_DIR, exist_ok=True)
@@ -34,13 +33,3 @@ def set_value(key: str, value: str) -> None:
         except Exception as e:
             logger.error("set failed: key=%s, error=%s", key, e)
 
-
-def delete(key: str) -> None:
-    """删除 Key"""
-    with _lock:
-        try:
-            with shelve.open(_DB_PATH) as db:
-                if key in db:
-                    del db[key]
-        except Exception as e:
-            logger.error("delete failed: key=%s, error=%s", key, e)
