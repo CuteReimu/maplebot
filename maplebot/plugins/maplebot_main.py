@@ -1,7 +1,6 @@
 """maplebot 主插件 - NoneBot2 命令路由"""
 from __future__ import annotations
 
-import json
 import logging
 import random
 from typing import Any
@@ -43,6 +42,7 @@ from maplebot.commands.potion import calculate_potion
 from maplebot.commands.star_force import calculate_star_force, calculate_boom_count
 from maplebot.utils.config import config, qun_db, find_role_data
 from maplebot.utils.dict_tfidf import get_familiar_value, add_into_dict
+from maplebot.utils.dict_entry import serialize_message, build_message
 
 logger = logging.getLogger("maplebot.plugin")
 nb_logger.opt(colors=True).info("<green>✅ maplebot_main 插件加载成功！</green>")
@@ -82,7 +82,7 @@ async def _check_valid_group(event: Event) -> bool:
     """Rule：仅允许配置中的 QQ 群或 Console 事件"""
     if isinstance(event, GroupMessageEvent):
         return _in_valid_group(event.group_id)
-    return True
+    return False
 
 
 _valid_group_rule = Rule(_check_valid_group)
@@ -122,7 +122,7 @@ _tfidf_tracker = on_message(priority=1, block=False)
 
 @_tfidf_tracker.handle()
 async def _handle_tfidf(event: Event):
-    if isinstance(event, GroupMessageEvent) and not _in_valid_group(event.group_id):
+    if not isinstance(event, GroupMessageEvent) or not _in_valid_group(event.group_id):
         return
     raw_text = event.get_plaintext().strip()
     if raw_text:
@@ -135,7 +135,7 @@ _dict_callback = on_message(priority=5, block=False)
 
 @_dict_callback.handle()
 async def _handle_dict_callback(event: Event):
-    if isinstance(event, GroupMessageEvent) and not _in_valid_group(event.group_id):
+    if not isinstance(event, GroupMessageEvent) or not _in_valid_group(event.group_id):
         return
     user_id = _get_user_id(event)
     if user_id not in _add_db_qq_list:
@@ -144,7 +144,8 @@ async def _handle_dict_callback(event: Event):
     if key == "太阳":
         await _dict_callback.finish("未知错误")
         return
-    buf = json.dumps(str(event.get_message()))
+    # 序列化消息（图片会被下载到本地缓存）
+    buf = serialize_message(event.get_message())
     m = qun_db.get_string_map_string("data")
     m[key] = buf
     qun_db.set("data", m)
@@ -519,15 +520,19 @@ _dict_fallback = on_message(priority=20, block=False)
 
 @_dict_fallback.handle()
 async def _handle_dict_fallback(event: Event):
-    if isinstance(event, GroupMessageEvent) and not _in_valid_group(event.group_id):
+    if not isinstance(event, GroupMessageEvent) or not _in_valid_group(event.group_id):
         return
     raw_text = event.get_plaintext().strip()
     if not raw_text:
         return
     m = qun_db.get_string_map_string("data")
     s = get_familiar_value(m, _deal_key(raw_text))
-    if s:
-        await _dict_fallback.finish(s)
+    if not s:
+        return
+    expire_hours: int = int(config.get("image_expire_hours", 24))
+    msg = build_message(s, expire_hours)
+    if msg:
+        await _dict_fallback.finish(msg)
 
 
 # ====================== 词条 CRUD ======================
