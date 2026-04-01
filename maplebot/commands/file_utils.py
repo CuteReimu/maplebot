@@ -9,7 +9,6 @@ NEW_NAME_FILE = "player_name.json"
 PLAYER_DICT_FN = "player_data/player_{}.json"
 LVL_EXP_FILE = "lvl_data.json"
 RESPONSE_FILE = "response/response_{}.json"
-LOG_FILE = f"pylogs/{datetime.datetime.now().strftime('%Y-%m-%d')}.log"
 
 if not os.path.exists("./player_data"):
     os.makedirs("./player_data")
@@ -17,17 +16,8 @@ assert os.path.isdir("./player_data")
 if not os.path.exists('./response'):
     os.makedirs('./response')
 assert os.path.isdir("./response")
-if not os.path.exists("./pylogs"):
-    os.makedirs("./pylogs")
-assert os.path.isdir("./pylogs")
 assert os.path.exists("./lvl_data.json")
 
-logging.basicConfig(level=logging.INFO,
-                    format='%(asctime)s - %(levelname)s - %(message)s',
-                    filename=LOG_FILE,
-                    filemode='a',
-                    encoding='utf-8'
-                    )
 logging.info(f"Program started at {datetime.datetime.now().strftime('%Y-%m-%d %H:%M:%S')}")
 
 def read_with_retry(path, encoding="utf-8", attempts=3, delay=0.05, default=""):
