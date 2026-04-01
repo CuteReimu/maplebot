@@ -11,7 +11,7 @@ import httpx
 import matplotlib
 import matplotlib.pyplot as plt
 import numpy as np
-from nonebot.adapters.onebot.v11 import MessageSegment
+from nonebot.adapters.onebot.v11 import Message, MessageSegment
 
 from maplebot.utils.class_name import translate_class_name, translate_class_id
 from maplebot.utils.config import level_exp_data, find_role_data
@@ -93,7 +93,9 @@ def _format_series_data(times, exps, lvls):
 
 def _days_to_level(dated_exps, current_exp, current_lvl, lvl_single):
     filtered = [v for v in dated_exps if v is not None]
-    denom = lvl_single.get(str(current_lvl), 1) or 1
+    denom = lvl_single.get(str(current_lvl))
+    if not denom:
+        return 10000, 0.0
     pct = round(current_exp / denom * 100, 1)
     if not filtered:
         return 10000, pct
@@ -189,7 +191,7 @@ def _process_player_data(name: str) -> dict:
     return player_dict
 
 
-def _try_local(name: str) -> list | None:
+def _try_local(name: str) -> Message | None:
     """从本地数据生成回复"""
     player_dict = _process_player_data(name)
     if not player_dict:
@@ -221,31 +223,31 @@ def _try_local(name: str) -> list | None:
 
     has_change = any(v is not None and v != 0 for v in dated_exps)
 
-    msgs: list = []
+    msg = Message()
     if avatar:
         try:
             base64.b64decode(avatar)
-            msgs.append(MessageSegment.image(f"base64://{avatar}"))
+            msg += MessageSegment.image(f"base64://{avatar}")
         except Exception:
             pass
 
     text = f"角色名：{pname}\n职业：{job_name}\n等级：{level} ({exp_pct}%)\n联盟：{legion}\n"
     if has_change:
         text += f"预计还有{days_needed}天升级\n"
-        msgs.append(text)
+        msg += text
         try:
             chart = _draw_chart(days, dated_exps, dated_lvls)
-            msgs.append(MessageSegment.image(f"base64://{chart}"))
+            msg += MessageSegment.image(f"base64://{chart}")
         except Exception as e:
             logger.error("绘制图表失败: %s", e)
     else:
         text += "近日无经验变化"
-        msgs.append(text)
+        msg += text
 
-    return msgs
+    return msg
 
 
-async def find_role(name: str) -> list:
+async def find_role(name: str) -> Message | str:
     """查询角色信息，优先本地数据，失败则请求 maplestory.gg API"""
     # 1. 尝试本地数据
     local = _try_local(name)
@@ -258,29 +260,29 @@ async def find_role(name: str) -> list:
             resp = await client.get(f"https://api.maplestory.gg/v2/public/character/gms/{name}")
     except Exception as e:
         logger.error("请求失败: %s", e)
-        return ["请求失败"]
+        return "请求失败"
 
     if resp.status_code == 404:
-        return [f"{name}已身死道消"]
+        return f"{name}已身死道消"
     if resp.status_code != 200:
         logger.error("请求失败 status=%d", resp.status_code)
-        return ["请求失败"]
+        return "请求失败"
 
     try:
         data = resp.json()
     except Exception:
-        return ["解析失败"]
+        return "解析失败"
 
     char = data.get("CharacterData")
     if not char:
-        return ["请求失败"]
+        return "请求失败"
 
     # 翻译职业名
     class_name = translate_class_name(char.get("Class", ""))
     if not class_name:
         class_name = translate_class_id(char.get("ClassID", 0))
 
-    msgs: list = []
+    msg = Message()
 
     # 角色图片
     img_url = char.get("CharacterImageURL", "")
@@ -290,7 +292,7 @@ async def find_role(name: str) -> list:
                 img_resp = await client.get(img_url)
             if img_resp.status_code == 200:
                 b64 = base64.b64encode(img_resp.content).decode("ascii")
-                msgs.append(MessageSegment.image(f"base64://{b64}"))
+                msg += MessageSegment.image(f"base64://{b64}")
         except Exception:
             pass
 
@@ -304,8 +306,8 @@ async def find_role(name: str) -> list:
         d.get("CurrentEXP", 0) != 0 for d in graph_data
     ):
         text += "近日无经验变化"
-        msgs.append(text)
-        return msgs
+        msg += text
+        return msg
 
     # 处理 GraphData 画图（简化版，使用 Go 版同样的逻辑）
     lvl_single = {}
@@ -335,8 +337,8 @@ async def find_role(name: str) -> list:
 
     if not any(v != 0 for v in exp_values):
         text += "近日无经验变化"
-        msgs.append(text)
-        return msgs
+        msg += text
+        return msg
 
     # 预测升级天数
     avg = sum(exp_values) / len(exp_values) if exp_values else 0
@@ -344,16 +346,16 @@ async def find_role(name: str) -> list:
     remaining = total_exp - total_exp * exp_pct / 100
     days_pred = int(math.ceil(remaining / avg)) if avg > 0 else 10000
     text += f"预计还有{days_pred}天升级\n"
-    msgs.append(text)
+    msg += text
 
     # 画图
     try:
         chart = _draw_chart(labels, exp_values, level_values)
-        msgs.append(MessageSegment.image(f"base64://{chart}"))
+        msg += MessageSegment.image(f"base64://{chart}")
     except Exception as e:
         logger.error("render chart failed: %s", e)
 
-    return msgs
+    return msg
 
 
 async def find_role_background():

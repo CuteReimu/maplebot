@@ -36,10 +36,13 @@ if _font_path:
     plt.rcParams["axes.unicode_minus"] = False
 
 
-def _fig_to_base64(fig) -> str:
+def _fig_to_base64(fig, pad_inches=None) -> str:
     """将 matplotlib figure 转为 base64 PNG"""
     buf = io.BytesIO()
-    fig.savefig(buf, format="png", bbox_inches="tight", dpi=120)
+    save_kwargs: dict = {"format": "png", "bbox_inches": "tight", "dpi": 120}
+    if pad_inches is not None:
+        save_kwargs["pad_inches"] = pad_inches
+    fig.savefig(buf, **save_kwargs)
     plt.close(fig)
     return base64.b64encode(buf.getvalue()).decode("ascii")
 
@@ -65,6 +68,7 @@ def render_table(
     fig_h = max(0.4 * (n_rows + 1), 1.5)
     fig, ax = plt.subplots(figsize=(fig_w, fig_h))
     ax.axis("off")
+    fig.subplots_adjust(left=0, right=1, top=1, bottom=0)
 
     table = ax.table(
         cellText=data,
@@ -89,7 +93,7 @@ def render_table(
                 if color:
                     table[i + 1, j].set_facecolor(color)
 
-    return _fig_to_base64(fig)
+    return _fig_to_base64(fig, pad_inches=0)
 
 
 # ====================== 饼图渲染 ======================
