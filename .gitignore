@@ -12,6 +12,7 @@ __pycache__/
 /dist/
 /logs/
 
+/response/
 /player_data/
 /data/
 /assets/
