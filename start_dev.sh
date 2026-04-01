@@ -5,4 +5,3 @@ else
   PYTHON=python
 fi
 ENVIRONMENT=dev "$PYTHON" bot.py
-

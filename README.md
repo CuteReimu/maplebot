@@ -11,7 +11,7 @@ GMSR 群机器人，基于 [NoneBot2](https://github.com/nonebot/nonebot2) + One
 pip install -r requirements.txt
 
 # 测试环境下运行，会启动 Console 方便调试
-./start_dev.sh
+./start_dev.sh # Windows下可以使用 start_dev.bat
 ```
 
 **注意**：项目使用 `pylint` 规范代码风格。
