@@ -1,6 +1,7 @@
 """词条消息的序列化 / 反序列化 + 图片本地缓存管理"""
 from __future__ import annotations
 
+import base64
 import hashlib
 import json
 import logging
@@ -106,6 +107,16 @@ def _download_image(url: str) -> str | None:
         return None
 
 
+def _read_image_as_base64(local_path: str) -> str | None:
+    """读取本地图片文件并返回 base64 编码字符串，失败返回 None。"""
+    try:
+        with open(local_path, "rb") as f:
+            return base64.b64encode(f.read()).decode("ascii")
+    except Exception as e:  # pylint: disable=broad-except
+        logger.warning("读取本地图片失败 (%s): %s", local_path, e)
+        return None
+
+
 # ===========================================================================
 # 反序列化（读词条）
 # ===========================================================================
@@ -156,8 +167,12 @@ def deserialize_to_segments(raw: str, expire_hours: int = 24) -> list[V11Seg]:
                     # URL 未过期，优先用 URL（发送更快、节省带宽）
                     result.append(V11Seg.image(url))
                 else:
-                    # URL 已过期或无 URL，用本地文件
-                    result.append(V11Seg.image(f"file://{os.path.abspath(local_path)}"))
+                    # URL 已过期或无 URL，用 base64 发送本地文件（兼容 Docker 环境）
+                    b64 = _read_image_as_base64(local_path)
+                    if b64:
+                        result.append(V11Seg.image(f"base64://{b64}"))
+                    else:
+                        result.append(V11Seg.text("（图片读取失败，请重新编辑词条）"))
             elif url:
                 # 没有本地文件，尝试用 URL
                 result.append(V11Seg.image(url))
