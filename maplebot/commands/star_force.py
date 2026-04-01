@@ -356,7 +356,7 @@ def _build_title(bp, to, ftf, be) -> str:
     return "".join(parts)
 
 
-def calculate_boom_count(content: str, new_kms: bool) -> list:
+def calculate_boom_count(content: str, new_kms: bool) -> Message | None:
     """爆炸次数统计饼图"""
     bp, to, ftf, be = _parse_flags(content)
 
@@ -381,32 +381,32 @@ def calculate_boom_count(content: str, new_kms: bool) -> list:
 
     try:
         img = render_pie(values, labels, title)
-        return [MessageSegment.image(f"base64://{img}")]
+        return Message(MessageSegment.image(f"base64://{img}"))
     except Exception as e:
         logger.error("render chart failed: %s", e)
-        return []
+        return None
 
 
-def calculate_star_force(new_kms: bool, content: str) -> list:
+def calculate_star_force(new_kms: bool, content: str) -> Message | None:
     """模拟升星（精确 Markov 链计算）"""
     parts = content.split(" ")
     if len(parts) < 3:
-        return []
+        return None
     try:
         item_level = int(parts[0])
         cur = int(parts[1])
         des = int(parts[2])
     except ValueError:
-        return ["参数格式不正确"]
+        return Message("参数格式不正确")
     if item_level < 5 or item_level > 300:
-        return ["装备等级不合理"]
+        return Message("装备等级不合理")
     if cur < 0:
-        return ["当前星数不合理"]
+        return Message("当前星数不合理")
     if des <= cur:
-        return ["目标星数必须大于当前星数"]
+        return Message("目标星数必须大于当前星数")
     max_star = _get_max_star(new_kms, item_level)
     if des > max_star:
-        return [f"{item_level}级装备最多升到{max_star}星"]
+        return Message(f"{item_level}级装备最多升到{max_star}星")
 
     bp, to, ftf, be = _parse_flags(content)
 
@@ -416,7 +416,7 @@ def calculate_star_force(new_kms: bool, content: str) -> list:
         )
     except Exception as e:
         logger.error("计算失败: %s", e)
-        return ["计算失败"]
+        return Message("计算失败")
 
     # 构建活动说明
     activity = []
@@ -480,5 +480,5 @@ def calculate_star_force(new_kms: bool, content: str) -> list:
 
     # 将文字和饼图合并为一条消息
     if pie_img_seg is not None:
-        return [Message(MessageSegment.text(s) + pie_img_seg)]
-    return [s]
+        return Message(MessageSegment.text(s) + pie_img_seg)
+    return Message(s)

@@ -5,11 +5,12 @@ from __future__ import annotations
 import random
 from typing import Any
 
-from nonebot import on_command, on_message, require
+from nonebot import on_command, on_message, require, get_bot
 from nonebot.adapters import Bot, Event
 from nonebot.adapters.onebot.v11 import (
     Bot as V11Bot,
     GroupMessageEvent,
+    Message as V11Message,
     MessageSegment as V11Seg,
 )
 from nonebot.log import logger
@@ -279,9 +280,7 @@ async def _handle_star_force(cmd: tuple[str, ...] = Command(), args=CommandArg()
         await _star_force_cmd.finish("命令格式：\r\n模拟升星 200 0 22\r\n后面可以加：七折、减爆、保护")
     else:
         result = calculate_star_force(new_kms, content)
-        for msg in result:
-            await _star_force_cmd.send(msg)
-        await _star_force_cmd.finish()
+        await _star_force_cmd.finish(result)
 
 
 # ---- 洗魔方 ----
@@ -292,9 +291,7 @@ _cube_cmd = on_command("洗魔方", rule=_valid_group_rule, priority=10, block=T
 async def _handle_cube(args=CommandArg()):
     content = args.extract_plain_text().strip()
     result = calculate_cube_all() if not content else calculate_cube(content)
-    for msg in result:
-        await _cube_cmd.send(msg)
-    await _cube_cmd.finish()
+    await _cube_cmd.finish(result)
 
 
 # ---- 查询我 ----

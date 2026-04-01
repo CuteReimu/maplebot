@@ -2,7 +2,7 @@
 import json
 import os
 
-from nonebot.adapters.onebot.v11 import MessageSegment
+from nonebot.adapters.onebot.v11 import Message, MessageSegment
 from nonebot.log import logger
 
 from maplebot.utils.charts import render_table
@@ -384,7 +384,7 @@ def _format_stat_target(it: str) -> str:
 
 # ====================== 公开接口 ======================
 
-def calculate_cube_all() -> list:
+def calculate_cube_all() -> Message | None:
     """洗魔方（无参数）- 生成全部位概览表格"""
     # 筛选部位
     skip_names = {"weapon", "secondary", "emblem", "overall"}
@@ -441,29 +441,29 @@ def calculate_cube_all() -> list:
             header=header, data=rows, width=770,
             cell_colors=cell_colors,
         )
-        return [MessageSegment.image(f"base64://{img}")]
+        return Message(MessageSegment.image(f"base64://{img}"))
     except Exception as e:
         logger.error("生成表格失败: %s", e)
-        return []
+        return None
 
 
-def calculate_cube(s: str) -> list:
+def calculate_cube(s: str) -> Message | None:
     """洗魔方 <部位> [等级]"""
     parts = s.split(" ")
     label = parts[0]
     if label not in _NAME_MAP:
-        return []
+        return None
     item_name, item_level = _NAME_MAP[label]
     if len(parts) >= 2:
         try:
             lv = int(parts[1])
             if lv < 71:
-                return ["不能低于71级"]
+                return Message("不能低于71级")
             if lv > 300:
-                return ["不能高于300级"]
+                return Message("不能高于300级")
             item_level = lv
         except ValueError:
-            return []
+            return None
 
     label = label.lstrip("0123456789")
     selections = _get_selection(item_name, item_level)
@@ -498,7 +498,7 @@ def calculate_cube(s: str) -> list:
             header=[f"{item_level}级{label}", "（底色表示魔方颜色）"],
             data=rows, width=250, cell_colors=row_colors,
         )
-        return [MessageSegment.image(f"base64://{img}")]
+        return Message(MessageSegment.image(f"base64://{img}"))
     except Exception as e:
         logger.error("生成表格失败: %s", e)
-        return []
+        return None
