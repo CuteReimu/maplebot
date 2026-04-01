@@ -533,8 +533,7 @@ async def _handle_dict_fallback(event: Event):
     s = get_familiar_value(m, _deal_key(raw_text))
     if not s:
         return
-    expire_hours: int = int(config.get("image_expire_hours", 24))
-    msg = build_message(s, expire_hours)
+    msg = build_message(s)
     if msg:
         await _dict_fallback.finish(msg)
 
