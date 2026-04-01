@@ -35,7 +35,6 @@ from maplebot.commands.boss_party import (
 from maplebot.commands.cube import calculate_cube, calculate_cube_all
 from maplebot.commands.find_role import find_role
 from maplebot.commands.scrape import scrape_role_background
-from maplebot.commands.gen_table import gen_table
 from maplebot.commands.level_exp import (
     calculate_level_exp,
     calculate_exp_between_level,
@@ -60,8 +59,8 @@ _HELP_TIPS = [
     "洗魔方", "洗魔方 部位 [等级]",
     "模拟升星 200 0 22 [七折] [减爆] [保护]",
     "升级经验", "升级经验 起始级 目标级",
-    "8421", "等级压制 等级差",
-    "生成表格", "神秘压制",
+    "等级压制 等级差",
+    "神秘压制",
     "我要开车 BOSS编号", "订阅开车 BOSS编号", "取消订阅 [BOSS编号]",
     "爆炸次数",
 ]
@@ -104,11 +103,9 @@ def _is_console(event: Event) -> bool:
     return _HAS_CONSOLE and isinstance(event, ConsoleMessageEvent)
 
 
-def _make_image_or_text(s: str, event: Event, is_base64_data: bool = True) -> Any:
+def _make_image_or_text(s: str, event: Event) -> Any:
     """OneBot 返回 MessageSegment.image；Console 返回纯文字占位。"""
     if _is_console(event):
-        if is_base64_data:
-            return "[图片结果 - 请在 QQ 中查看]"
         return s
     return V11Seg.image(f"base64://{s}")
 
@@ -211,19 +208,6 @@ async def _handle_exp_damage(args=CommandArg()):
         result = calculate_exp_damage(content)
         if result:
             await _exp_damage_cmd.finish(result)
-
-
-# ---- 生成表格 ----
-_gen_table_cmd = on_command("生成表格", rule=_valid_group_rule, priority=10, block=True)
-
-
-@_gen_table_cmd.handle()
-async def _handle_gen_table(event: Event, args=CommandArg()):
-    content = args.extract_plain_text().strip()
-    if content:
-        result = gen_table(content)
-        if result:
-            await _gen_table_cmd.finish(_make_image_or_text(result, event))
 
 
 # ---- 升级经验 ----
