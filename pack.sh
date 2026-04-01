@@ -42,7 +42,7 @@ if [ -f .env.prod ] && [ ! -f .env ]; then
 fi
 
 # 设置生产环境标志并启动
-ENVIRONMENT=prod python bot.py
+ENVIRONMENT=prod python3 bot.py
 EOF
 chmod +x "${DIST_DIR}/${PACKAGE_NAME}/start.sh"
 
