@@ -24,7 +24,7 @@ echo "==> 复制项目文件..."
 cp -r maplebot           "${DIST_DIR}/${PACKAGE_NAME}/"
 cp    bot.py             "${DIST_DIR}/${PACKAGE_NAME}/"
 cp    requirements.txt   "${DIST_DIR}/${PACKAGE_NAME}/"
-cp    .env               "${DIST_DIR}/${PACKAGE_NAME}/.env.prod"
+cp    .env               "${DIST_DIR}/${PACKAGE_NAME}/.env"
 
 # ---------- 生成启动脚本 ----------
 echo "==> 生成 start.sh..."
@@ -36,9 +36,9 @@ SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
 cd "$SCRIPT_DIR"
 
 # 使用 .env.prod（复制为 NoneBot2 默认读取的 .env）
-if [ -f .env.prod ] && [ ! -f .env ]; then
-  cp .env.prod .env
-  echo "[info] 已将 .env.prod 复制为 .env，请按需修改后重新运行。"
+if [ ! -f .env.prod ] && [ -f .env ]; then
+  cp .env .env.prod
+  echo "[info] 已将 .env 复制为 .env.prod，请按需修改后重新运行。"
 fi
 
 # 设置生产环境标志并启动
