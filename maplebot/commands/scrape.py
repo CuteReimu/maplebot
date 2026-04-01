@@ -152,7 +152,11 @@ async def scrape_role_background():
     """后台预抓取角色数据（供 cron 任务调用）"""
     sta = time.time()
     logger.info("Starting data scrape...")
-    request_from_name_list()
+    try:
+        request_from_name_list()
+    except Exception as e:
+        logger.error("Data scrape failed: %s", e)
+        raise
     end = time.time()
     elapsed = (end - sta) / 60
     logger.info("Data scrape completed in %.2f minutes", elapsed)

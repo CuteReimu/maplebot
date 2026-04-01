@@ -241,11 +241,17 @@ _boom_cmd = on_command("爆炸次数", rule=_valid_group_rule, priority=10, bloc
 @_boom_cmd.handle()
 async def _handle_boom(args=CommandArg()):
     content = args.extract_plain_text().strip()
-    msgs = calculate_boom_count(content or "", new_kms=True)
-    msgs += calculate_boom_count(content or "", new_kms=False)
-    for msg in msgs:
-        await _boom_cmd.send(msg)
-    await _boom_cmd.finish()
+    msg1 = calculate_boom_count(content or "", new_kms=True)
+    msg2 = calculate_boom_count(content or "", new_kms=False)
+    combined = V11Message()
+    if msg1:
+        combined += msg1
+    if msg2:
+        combined += msg2
+    if combined:
+        await _boom_cmd.finish(combined)
+    else:
+        await _boom_cmd.finish()
 
 
 # ---- 神秘压制 ----
@@ -563,9 +569,35 @@ async def _deal_search_dict(matcher, key: str):
 
 
 # ====================== 定时任务：角色数据预抓取 ======================
+async def _notify_scrape_failure():
+    """抓取失败时向配置的群发送告警并艾特管理员"""
+    try:
+        bot = get_bot()
+    except Exception:
+        logger.warning("[cron] 无法获取 bot 实例，跳过告警通知")
+        return
+    if not isinstance(bot, V11Bot):
+        return
+    notify_groups = config.get("notify_groups", [])
+    notify_qq = config.get("notify_qq", [])
+    msg = V11Message(V11Seg.text("角色数据预抓取失败"))
+    for qq in notify_qq:
+        msg += V11Seg.at(str(qq))
+    for group in notify_groups:
+        try:
+            await bot.send_group_msg(group_id=int(group), message=msg)
+        except Exception as ex:
+            logger.warning("[cron] 发送告警通知失败 (group=%s): %s", group, ex)
+
+
 async def _cron_find_role():
     logger.info("[cron] 开始角色数据预抓取")
-    await scrape_role_background()
+    try:
+        await scrape_role_background()
+        logger.info("[cron] 完成角色数据预抓取")
+    except Exception as e:
+        logger.error("[cron] 角色数据预抓取失败: %s", e)
+        await _notify_scrape_failure()
 
 
 for _hour in (1, 9, 15):
