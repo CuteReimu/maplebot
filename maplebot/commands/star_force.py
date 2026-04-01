@@ -111,7 +111,7 @@ def _format_int64(i: int) -> str:
     return f"{i / 1_000_000_000_000:.2f}T"
 
 
-# ---------- Markov 链计算（来自 sf_cal_shell.py）----------
+# ---------- Markov 链计算 ----------
 def _get_odds_and_inc(i, safe_guard, kms_new, _5_10_15, star_catch, boom_events):
     upgrade, fail_stay, fail_down, fail_break = _RATES[int(kms_new)][i]
     increment = 1

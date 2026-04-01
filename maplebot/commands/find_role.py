@@ -14,7 +14,7 @@ import numpy as np
 from nonebot.adapters.onebot.v11 import Message, MessageSegment
 
 from maplebot.utils.class_name import translate_class_name, translate_class_id
-from maplebot.utils.config import level_exp_data, find_role_data
+from maplebot.utils.config import level_exp_data
 
 logger = logging.getLogger("maplebot.find_role")
 

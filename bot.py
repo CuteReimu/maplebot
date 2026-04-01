@@ -1,7 +1,7 @@
 """NoneBot2 主入口"""
+import inspect
 import logging
 import os
-import sys
 
 import nonebot
 from loguru import logger
@@ -34,15 +34,15 @@ if _IS_PROD:
 
     # 添加按天滚动、保留 7 天的文件 sink
     _log_path = os.path.join(_LOG_DIR, "{time:YYYY-MM-DD}.log")
-    _sink_cfg = dict(
-        rotation="00:00",       # 每天 0 点切割
-        retention="7 days",     # 保留最近 7 天
-        encoding="utf-8",
-        enqueue=True,           # 异步写入，避免阻塞事件循环
-        backtrace=True,
-        diagnose=False,         # prod 下关闭变量诊断，防止敏感信息泄露
-        format="{time:YYYY-MM-DD HH:mm:ss.SSS} | {level:<8} | {name}:{function}:{line} - {message}",
-    )
+    _sink_cfg = {
+        "rotation": "00:00",       # 每天 0 点切割
+        "retention": "7 days",     # 保留最近 7 天
+        "encoding": "utf-8",
+        "enqueue": True,           # 异步写入，避免阻塞事件循环
+        "backtrace": True,
+        "diagnose": False,         # prod 下关闭变量诊断，防止敏感信息泄露
+        "format": "{time:YYYY-MM-DD HH:mm:ss.SSS} | {level:<8} | {name}:{function}:{line} - {message}",
+    }
     logger.add(_log_path, **_sink_cfg)
     nb_logger.add(_log_path, **_sink_cfg)
 
@@ -53,7 +53,7 @@ if _IS_PROD:
                 level = logger.level(record.levelname).name
             except ValueError:
                 level = record.levelno  # type: ignore[assignment]
-            frame, depth = sys._getframe(6), 6
+            frame, depth = inspect.currentframe(), 0
             while frame and frame.f_code.co_filename == logging.__file__:
                 frame = frame.f_back  # type: ignore[assignment]
                 depth += 1

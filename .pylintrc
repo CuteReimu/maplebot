@@ -16,13 +16,14 @@ py-version = 3.13
 disable =
     missing-module-docstring,      # 允许模块不写 docstring
     duplicate-code,
+    line-too-long,
     too-many-locals,
     too-many-return-statements,
     too-many-branches,
     too-many-statements,
     missing-function-docstring,    # 允许函数不写 docstring
     broad-exception-caught,        # 允许捕获 broad exception（如 Exception）
-
+    broad-exception-raised,
 
 [FORMAT]
 # 每行最大字符数

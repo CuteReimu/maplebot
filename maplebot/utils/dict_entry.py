@@ -97,7 +97,7 @@ def _read_file_base64(path: str) -> str | None:
 # 反序列化（读词条）
 # ===========================================================================
 
-def deserialize_to_segments(raw: str, expire_hours: int = 24) -> list[V11Seg]:
+def deserialize_to_segments(raw: str) -> list[V11Seg]:
     """
     将词条 JSON 字符串反序列化为 V11Seg 列表，供发送使用。
 
@@ -159,12 +159,12 @@ def deserialize_to_segments(raw: str, expire_hours: int = 24) -> list[V11Seg]:
     return result
 
 
-def build_message(raw: str, expire_hours: int = 24) -> V11Message | None:
+def build_message(raw: str) -> V11Message | None:
     """
     反序列化词条并组装成 V11Message。
     若词条为空则返回 None。
     """
-    segs = deserialize_to_segments(raw, expire_hours)
+    segs = deserialize_to_segments(raw)
     if not segs:
         return None
     msg = V11Message()
