@@ -65,7 +65,14 @@ class YamlStore:
         d = self._data
         for k in keys:
             if isinstance(d, dict):
-                d = d.get(k, None)
+                val = d.get(k, None)
+                if val is None:
+                    # YAML 中纯数字 key 会被 safe_load 解析为 int，尝试整数 key
+                    try:
+                        val = d.get(int(k), None)
+                    except (ValueError, TypeError):
+                        pass
+                d = val
             else:
                 return default
         return d if d is not None else default

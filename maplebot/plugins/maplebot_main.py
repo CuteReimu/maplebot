@@ -24,6 +24,7 @@ try:
 except ImportError:
     _HAS_CONSOLE = False
 
+require("nonebot_plugin_apscheduler")
 from nonebot_plugin_apscheduler import scheduler
 from maplebot.commands.arc_more_damage import get_more_damage_arc
 from maplebot.commands.boss_party import (
@@ -83,6 +84,8 @@ def _in_valid_group(group_id: int) -> bool:
 
 async def _check_valid_group(event: Event) -> bool:
     """Rule：仅允许配置中的 QQ 群或 Console 事件"""
+    if _is_console(event):
+        return True
     if isinstance(event, GroupMessageEvent):
         return _in_valid_group(event.group_id)
     return False
@@ -102,11 +105,13 @@ def _is_console(event: Event) -> bool:
     return _HAS_CONSOLE and isinstance(event, ConsoleMessageEvent)
 
 
-def _make_image_or_text(base64_data: str, event: Event) -> Any:
+def _make_image_or_text(s: str, event: Event, is_base64_data: bool = True) -> Any:
     """OneBot 返回 MessageSegment.image；Console 返回纯文字占位。"""
     if _is_console(event):
-        return "[图片结果 - 请在 QQ 中查看]"
-    return V11Seg.image(f"base64://{base64_data}")
+        if is_base64_data:
+            return "[图片结果 - 请在 QQ 中查看]"
+        return s
+    return V11Seg.image(f"base64://{s}")
 
 
 async def _is_admin(bot: Bot, event: Event) -> bool:
@@ -204,9 +209,9 @@ _potion_cmd = on_command("8421", rule=_valid_group_rule, priority=10, block=True
 async def _handle_potion(event: Event, args=CommandArg()):
     content = args.extract_plain_text().strip()
     if not content:
-        result = calculate_potion()
+        result = calculate_potion(_is_console(event))
         if result:
-            await _potion_cmd.finish(_make_image_or_text(result, event))
+            await _potion_cmd.finish(_make_image_or_text(result, event, False))
 
 
 # ---- 等级压制 ----

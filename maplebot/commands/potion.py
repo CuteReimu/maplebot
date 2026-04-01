@@ -7,7 +7,7 @@ from maplebot.utils.config import level_exp_data
 logger = logging.getLogger("maplebot.potion")
 
 
-def calculate_potion() -> str | None:
+def calculate_potion(show_text: bool) -> str | None:
     """生成 8421 药水效率表格，返回 base64 图片"""
     potions = {
         "敲头": int(level_exp_data.get("data.199", 0) or 0),
@@ -19,6 +19,10 @@ def calculate_potion() -> str | None:
         "259药": int(level_exp_data.get("data.259", 0) or 0),
         "269药": int(level_exp_data.get("data.269", 0) or 0),
     }
+
+    if show_text:
+        return str(potions)
+
     keys = ["敲头", "209药", "219药", "229药", "239药", "249药", "259药", "269药"]
 
     data: list[list[str]] = []

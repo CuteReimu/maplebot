@@ -16,3 +16,4 @@ __pycache__/
 /data/
 /assets/
 player_name.json
+lvl_data.json
