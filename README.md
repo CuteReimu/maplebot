@@ -14,6 +14,8 @@ pip install -r requirements.txt
 ./start_dev.sh
 ```
 
+**注意**：项目使用 `pylint` 规范代码风格。
+
 ## 项目结构
 
 ```

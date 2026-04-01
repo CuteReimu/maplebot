@@ -98,8 +98,3 @@ def same_dict(dict1, dict2):
     if abs((date1 - date2)) >= datetime.timedelta(hours=20):
         return False
     return True
-
-
-
-
-

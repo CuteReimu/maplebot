@@ -32,4 +32,3 @@ def set_value(key: str, value: str) -> None:
                 db[key] = value
         except Exception as e:
             logger.error("set failed: key=%s, error=%s", key, e)
-

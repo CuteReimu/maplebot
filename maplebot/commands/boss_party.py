@@ -5,7 +5,6 @@ from nonebot.log import logger
 from maplebot.utils import db
 
 
-
 def _get_boss_chars(boss_list: list[str], input_str: str) -> list[str]:
     """从输入中提取有效的 boss 字符"""
     input_upper = input_str.upper()

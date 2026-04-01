@@ -18,7 +18,7 @@ _IS_PROD = os.getenv("ENVIRONMENT", "dev").lower() == "prod"
 # 非 prod 模式下加载 ConsoleAdapter，方便本地调试
 if not _IS_PROD:
     try:
-        from nonebot.adapters.console import Adapter as ConsoleAdapter  # noqa: PLC0415
+        from nonebot.adapters.console import Adapter as ConsoleAdapter
         driver.register_adapter(ConsoleAdapter)  # type: ignore[arg-type]
     except ImportError:
         pass

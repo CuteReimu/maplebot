@@ -1,4 +1,5 @@
 """maplebot 主插件 - NoneBot2 命令路由"""
+# pylint: disable=wrong-import-position
 from __future__ import annotations
 
 import random
@@ -26,25 +27,25 @@ except ImportError:
 
 # NoneBot2 要求在 require 之后再导入插件模块
 require("nonebot_plugin_apscheduler")
-from nonebot_plugin_apscheduler import scheduler  # noqa: E402
-from maplebot.commands.arc_more_damage import get_more_damage_arc  # noqa: E402
-from maplebot.commands.boss_party import (  # noqa: E402
+from nonebot_plugin_apscheduler import scheduler
+from maplebot.commands.arc_more_damage import get_more_damage_arc
+from maplebot.commands.boss_party import (
     handle_boss_party,
     handle_subscribe,
     handle_unsubscribe,
 )
-from maplebot.commands.cube import calculate_cube, calculate_cube_all  # noqa: E402
-from maplebot.commands.find_role import find_role  # noqa: E402
-from maplebot.commands.scrape import scrape_role_background  # noqa: E402
-from maplebot.commands.level_exp import (  # noqa: E402
+from maplebot.commands.cube import calculate_cube, calculate_cube_all
+from maplebot.commands.find_role import find_role
+from maplebot.commands.scrape import scrape_role_background
+from maplebot.commands.level_exp import (
     calculate_level_exp,
     calculate_exp_between_level,
     calculate_exp_damage,
 )
-from maplebot.commands.star_force import calculate_star_force, calculate_boom_count  # noqa: E402
-from maplebot.utils.config import config, qun_db, find_role_data  # noqa: E402
-from maplebot.utils.dict_tfidf import get_familiar_value, add_into_dict  # noqa: E402
-from maplebot.utils.dict_entry import serialize_message, build_message  # noqa: E402
+from maplebot.commands.star_force import calculate_star_force, calculate_boom_count
+from maplebot.utils.config import config, qun_db, find_role_data
+from maplebot.utils.dict_tfidf import get_familiar_value, add_into_dict
+from maplebot.utils.dict_entry import serialize_message, build_message
 
 logger.opt(colors=True).info("<green>✅ maplebot_main 插件加载成功！</green>")
 

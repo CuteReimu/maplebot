@@ -1,18 +1,20 @@
 """角色查询"""
 import base64
 import datetime
+import io
 import json
 import math
 import os
 
 import httpx
+import matplotlib
+import matplotlib.pyplot as plt
 import numpy as np
 from nonebot.adapters.onebot.v11 import Message, MessageSegment
 from nonebot.log import logger
 
 from maplebot.utils.class_name import translate_class_name, translate_class_id
 from maplebot.utils.config import level_exp_data
-
 
 # ---------- 文件路径 ----------
 _PLAYER_DATA_DIR = "player_data"
@@ -130,9 +132,6 @@ def _draw_chart(days, dated_exps, dated_lvls) -> str:
     line_values = [v if v is not None else 0 for v in dated_lvls]
 
     # 溢出标注：render_bar_line 不支持逐点文字标注，此处保留原始绘图逻辑
-    import io  # noqa: PLC0415
-    import matplotlib  # noqa: PLC0415
-    import matplotlib.pyplot as plt  # noqa: PLC0415
     matplotlib.use("Agg")
 
     x = np.arange(len(days))
