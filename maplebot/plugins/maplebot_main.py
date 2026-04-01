@@ -31,7 +31,7 @@ from maplebot.commands.boss_party import (
     handle_unsubscribe,
 )
 from maplebot.commands.cube import calculate_cube, calculate_cube_all
-from maplebot.commands.find_role import find_role
+from maplebot.commands.find_role import find_role, find_role_background
 from maplebot.commands.gen_table import gen_table
 from maplebot.commands.level_exp import (
     calculate_level_exp,
@@ -43,6 +43,10 @@ from maplebot.commands.star_force import calculate_star_force, calculate_boom_co
 from maplebot.utils.config import config, qun_db, find_role_data
 from maplebot.utils.dict_tfidf import get_familiar_value, add_into_dict
 from maplebot.utils.dict_entry import serialize_message, build_message
+
+from nonebot import require
+require("nonebot_plugin_apscheduler")
+from nonebot_plugin_apscheduler import scheduler  # noqa: E402
 
 logger = logging.getLogger("maplebot.plugin")
 nb_logger.opt(colors=True).info("<green>✅ maplebot_main 插件加载成功！</green>")
@@ -586,3 +590,23 @@ async def _deal_search_dict(matcher, key: str):
         await matcher.finish("搜索到以下词条：\n" + "\n".join(lines))
     else:
         await matcher.finish(f"搜索不到词条({key})")
+
+
+# ====================== 定时任务：角色数据预抓取 ======================
+@scheduler.scheduled_job("cron", hour=1, minute=0, second=0, id="find_role_bg_01", timezone="Asia/Shanghai")
+async def _cron_find_role_01():
+    logger.info("[cron 01:00] 开始角色数据预抓取")
+    await find_role_background()
+
+
+@scheduler.scheduled_job("cron", hour=9, minute=0, second=0, id="find_role_bg_09", timezone="Asia/Shanghai")
+async def _cron_find_role_09():
+    logger.info("[cron 09:00] 开始角色数据预抓取")
+    await find_role_background()
+
+
+@scheduler.scheduled_job("cron", hour=15, minute=0, second=0, id="find_role_bg_15", timezone="Asia/Shanghai")
+async def _cron_find_role_15():
+    logger.info("[cron 15:00] 开始角色数据预抓取")
+    await find_role_background()
+
