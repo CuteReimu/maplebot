@@ -41,7 +41,6 @@ from maplebot.commands.level_exp import (
     calculate_exp_between_level,
     calculate_exp_damage,
 )
-from maplebot.commands.potion import calculate_potion
 from maplebot.commands.star_force import calculate_star_force, calculate_boom_count
 from maplebot.utils.config import config, qun_db, find_role_data
 from maplebot.utils.dict_tfidf import get_familiar_value, add_into_dict
@@ -199,19 +198,6 @@ async def _handle_roll(args=CommandArg()):
                 await _roll_cmd.finish(f"roll: {random.randint(1, upper)}")
         except ValueError:
             pass
-
-
-# ---- 8421 (药水表) ----
-_potion_cmd = on_command("8421", rule=_valid_group_rule, priority=10, block=True)
-
-
-@_potion_cmd.handle()
-async def _handle_potion(event: Event, args=CommandArg()):
-    content = args.extract_plain_text().strip()
-    if not content:
-        result = calculate_potion(_is_console(event))
-        if result:
-            await _potion_cmd.finish(_make_image_or_text(result, event, False))
 
 
 # ---- 等级压制 ----
