@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "maplebot"
-version = "0.1.0"
+version = "1.0.0"
 description = "GMSR 群机器人，基于 NoneBot2 + OneBot 11 协议"
 requires-python = ">=3.12"
 dependencies = [
@@ -23,6 +23,7 @@ dependencies = [
 [project.optional-dependencies]
 dev = [
     "pylint>=4.0.0",
+    "build>=1.4.0",
 ]
 
 [tool.setuptools.packages.find]

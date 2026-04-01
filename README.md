@@ -7,8 +7,8 @@ GMSR 群机器人，基于 [NoneBot2](https://github.com/nonebot/nonebot2) + One
 在项目根目录运行：
 
 ```bash
-# 安装依赖（含开发工具）
-pip install -e ".[dev]"
+# 安装依赖
+pip install .
 
 # 测试环境下运行，会启动 Console 方便调试
 ./start_dev.sh # Windows下可以使用 start_dev.bat
@@ -62,11 +62,11 @@ python/
 ### 打包
 
 ```bash
-# 基本用法
-bash pack.sh
+# 安装依赖（含开发工具）
+pip install -e ".[dev]"
 
-# 指定版本号
-bash pack.sh 1.0.0
+# 打包
+./pack.sh
 ```
 
 脚本会将以下内容打包进 `dist/maplebot-<版本号>.tar.gz`：
@@ -92,11 +92,9 @@ vim .env.prod
 # 安装依赖
 pip install .
 
-# 启动（脚本会自动安装依赖并以 prod 模式运行）
+# 启动（`start.sh` 会自动设置 `ENVIRONMENT=prod`）
 bash start.sh
 ```
-
-`start.sh` 会自动设置 `ENVIRONMENT=prod`，
 
 ## 支持的命令
 
@@ -116,6 +114,7 @@ bash start.sh
 
 ## 注意事项
 
-- OneBot 实现端（如 go-cqhttp / Lagrange 等）需要配置**正向 WebSocket** 监听，由本程序连接
-- `event.message_format` 需配置为 `array`
+- OneBot 实现端（如 go-cqhttp / Lagrange 等）需要配置：
+  - **正向 WebSocket** 监听，由本程序连接
+  - `event.message_format` 需配置为 `array`
 - Linux 环境下若中文乱码，需安装 `simhei.ttf` 字体
