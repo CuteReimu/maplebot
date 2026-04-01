@@ -309,7 +309,7 @@ async def find_role(name: str) -> Message | str:
         msg += text
         return msg
 
-    # 处理 GraphData 画图（简化版，使用 Go 版同样的逻辑）
+    # 处理 GraphData 画图
     lvl_single = {}
     for i in range(1, 300):
         v = level_exp_data.get(f"data.{i}", 0)
@@ -356,13 +356,3 @@ async def find_role(name: str) -> Message | str:
         logger.error("render chart failed: %s", e)
 
     return msg
-
-
-async def find_role_background():
-    """后台预抓取角色数据（供 cron 任务调用）"""
-    logger.info("开始角色数据预抓取")
-    names = find_role_data.get_string_map_string("data")
-    for name in names.values():
-        if name:
-            _process_player_data(name)
-    logger.info("完成角色数据预抓取")
