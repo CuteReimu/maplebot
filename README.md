@@ -7,8 +7,8 @@ GMSR 群机器人，基于 [NoneBot2](https://github.com/nonebot/nonebot2) + One
 在项目根目录运行：
 
 ```bash
-# 安装依赖
-pip install -r requirements.txt
+# 安装依赖（含开发工具）
+pip install -e ".[dev]"
 
 # 测试环境下运行，会启动 Console 方便调试
 ./start_dev.sh # Windows下可以使用 start_dev.bat
@@ -22,7 +22,7 @@ pip install -r requirements.txt
 python/
 ├── bot.py                          # NoneBot2 入口
 ├── .env                            # NoneBot2 配置
-├── requirements.txt                # Python 依赖
+├── pyproject.toml                  # Python 依赖
 └── maplebot/
     ├── __init__.py
     ├── plugins/
@@ -75,7 +75,7 @@ bash pack.sh 1.0.0
 |--------------------|--------|
 | `bot.py`           | 主入口    |
 | `maplebot/`        | 源码包    |
-| `requirements.txt` | 依赖清单   |
+| `pyproject.toml`   | 依赖声明   |
 | `.env.prod`        | 配置模板   |
 | `start.sh`         | 一键启动脚本 |
 
@@ -90,7 +90,7 @@ cd maplebot-1.0.0
 vim .env.prod
 
 # 安装依赖
-pip install --quiet -r requirements.txt
+pip install .
 
 # 启动（脚本会自动安装依赖并以 prod 模式运行）
 bash start.sh

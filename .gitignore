@@ -11,6 +11,7 @@ venv/
 __pycache__/
 /dist/
 /logs/
+/maplebot.egg-info/
 
 /response/
 /player_data/

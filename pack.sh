@@ -26,7 +26,7 @@ echo "==> 复制项目文件..."
 # Python 源码
 cp -r maplebot           "${DIST_DIR}/${PACKAGE_NAME}/"
 cp    bot.py             "${DIST_DIR}/${PACKAGE_NAME}/"
-cp    requirements.txt   "${DIST_DIR}/${PACKAGE_NAME}/"
+cp    pyproject.toml     "${DIST_DIR}/${PACKAGE_NAME}/"
 cp    .env               "${DIST_DIR}/${PACKAGE_NAME}/.env"
 
 # ---------- 生成启动脚本 ----------
