@@ -6,10 +6,13 @@
 # =============================================================
 set -euo pipefail
 
-VERSION="${1:-$(date +%Y%m%d%H%M%S)}"
+VERSION="${1:-}"
 PACKAGE_NAME="maplebot"
 DIST_DIR="dist"
-OUTPUT="${DIST_DIR}/${PACKAGE_NAME}-${VERSION}.tar.gz"
+OUTPUT="${DIST_DIR}/${PACKAGE_NAME}.tar.gz"
+if VERSION; then
+  OUTPUT="${DIST_DIR}/${PACKAGE_NAME}-${VERSION}.tar.gz"
+fi
 
 echo "==> 打包版本：${VERSION}"
 
