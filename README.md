@@ -11,7 +11,7 @@ GMSR 群机器人，基于 [NoneBot2](https://github.com/nonebot/nonebot2) + One
 pip install -r requirements.txt
 
 # 运行
-python bot.py
+./start_dev.sh
 ```
 
 ## 项目结构

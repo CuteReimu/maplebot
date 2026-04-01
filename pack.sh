@@ -44,8 +44,15 @@ if [ ! -f .env.prod ] && [ -f .env ]; then
   echo "[info] 已将 .env 复制为 .env.prod，请按需修改后重新运行。"
 fi
 
+# 自动选择 python3 或 python
+if command -v python3 &>/dev/null; then
+  PYTHON=python3
+else
+  PYTHON=python
+fi
+
 # 设置生产环境标志并启动
-ENVIRONMENT=prod python3 bot.py
+ENVIRONMENT=prod "$PYTHON" bot.py
 EOF
 chmod +x "${DIST_DIR}/${PACKAGE_NAME}/start.sh"
 
