@@ -362,6 +362,23 @@ _query_cmd = on_command("查询", rule=_valid_group_rule, priority=10, block=Tru
 
 @_query_cmd.handle()
 async def _handle_query(event: Event, args=CommandArg()):
+    # 处理 "查询@某人" 或 "查询 @某人"（带/不带空格均支持）
+    at_segs = [seg for seg in args if seg.type == "at"]
+    if at_segs:
+        target_qq = str(at_segs[0].data.get("qq", ""))
+        if target_qq:
+            data = find_role_data.get_string_map_string("data")
+            name = data.get(target_qq, "")
+            if not name:
+                await _query_cmd.finish("该玩家还未绑定")
+            else:
+                result = await find_role(name)
+                if _is_console(event) and not isinstance(result, str):
+                    await _query_cmd.finish(result.extract_plain_text())
+                else:
+                    await _query_cmd.finish(result)
+            return
+
     content = args.extract_plain_text().strip()
     if content and " " not in content:
         result = await find_role(content)
