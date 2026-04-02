@@ -113,18 +113,14 @@ def render_pie(
     fig, ax = plt.subplots(figsize=(8, 6))
     fig.subplots_adjust(left=0.0, right=0.75)  # 右侧留空放图例
 
+    _autopct_idx = [0]
+
     def _autopct(pct: float) -> str:
+        i = _autopct_idx[0]
+        _autopct_idx[0] += 1
         if pct < min_pct_label:
             return ""
-        if unit:
-            # 根据百分比反查对应的值
-            cumsum = 0.0
-            for v in values:
-                cumsum += v
-                if cumsum / total * 100 >= pct - 0.5:
-                    return f"{v:.1f}{unit}"
-            return f"{pct:.1f}%"
-        return f"{pct:.1f}%"
+        return labels[i]
 
     wedges, _, autotexts = ax.pie(
         values,
