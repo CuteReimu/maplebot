@@ -238,7 +238,7 @@ def _try_local(name: str) -> Message | None:
             chart = _draw_chart(days, dated_exps, dated_lvls)
             msg += MessageSegment.image(f"base64://{chart}")
         except Exception as e:
-            logger.error("绘制图表失败: %s", e)
+            logger.error(f"绘制图表失败: {e}")
     else:
         text += "近日无经验变化"
         msg += text
@@ -258,13 +258,13 @@ async def find_role(name: str) -> Message | str:
         async with httpx.AsyncClient(timeout=20) as client:
             resp = await client.get(f"https://api.maplestory.gg/v2/public/character/gms/{name}")
     except Exception as e:
-        logger.error("请求失败: %s", e)
+        logger.error(f"请求失败: {e}")
         return "请求失败"
 
     if resp.status_code == 404:
         return f"{name}已身死道消"
     if resp.status_code != 200:
-        logger.error("请求失败 status=%d", resp.status_code)
+        logger.error(f"请求失败 status={resp.status_code}")
         return "请求失败"
 
     try:
@@ -352,6 +352,6 @@ async def find_role(name: str) -> Message | str:
         chart = _draw_chart(labels, exp_values, level_values)
         msg += MessageSegment.image(f"base64://{chart}")
     except Exception as e:
-        logger.error("render chart failed: %s", e)
+        logger.error(f"render chart failed: {e}")
 
     return msg

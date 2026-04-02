@@ -20,7 +20,7 @@ def get(key: str) -> tuple[str, bool]:
                     return db[key], True
                 return "", False
         except Exception as e:
-            logger.error("get failed: key=%s, error=%s", key, e)
+            logger.error(f"get failed: key={key}, error={e}")
             return "", False
 
 
@@ -31,4 +31,4 @@ def set_value(key: str, value: str) -> None:
             with shelve.open(_DB_PATH) as db:
                 db[key] = value
         except Exception as e:
-            logger.error("set failed: key=%s, error=%s", key, e)
+            logger.error(f"set failed: key={key}, error={e}")

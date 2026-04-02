@@ -69,7 +69,7 @@ async def handle_boss_party(
         member_ids = {str(m["user_id"]) for m in members}
         qq_numbers = qq_numbers & member_ids
     except Exception as e:
-        logger.error("获取群成员列表失败: %s", e)
+        logger.error(f"获取群成员列表失败: {e}")
 
     msg = f"{''.join(arr)} 发车了! "
     at_list = list(qq_numbers)[:20]

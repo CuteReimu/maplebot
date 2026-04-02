@@ -75,7 +75,7 @@ def calculate_level_exp() -> str | None:
             cell_colors=cell_colors,
         )
     except Exception as e:
-        logger.error("render chart failed: %s", e)
+        logger.error(f"render chart failed: {e}")
         return None
 
 

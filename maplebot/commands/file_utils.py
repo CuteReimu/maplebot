@@ -19,14 +19,14 @@ if not os.path.exists("./lvl_data.json"):
         f.write('{"single": {}, "cumulative": {}}')
 assert os.path.exists("./lvl_data.json")
 
-logger.info("Program started at %s", datetime.datetime.now().strftime('%Y-%m-%d %H:%M:%S'))
+logger.info(f"Program started at {datetime.datetime.now().strftime('%Y-%m-%d %H:%M:%S')}")
 
 
 def read_with_retry(path, encoding="utf-8", attempts=3, delay=0.05, default=""):
     for i in range(attempts):
         try:
             with open(path, "r", encoding=encoding) as f:
-                logger.info("Successfully read %s", path)
+                logger.info(f"Successfully read {path}")
                 return f.read()
         except FileNotFoundError:
             if i < attempts - 1:
@@ -34,7 +34,7 @@ def read_with_retry(path, encoding="utf-8", attempts=3, delay=0.05, default=""):
             else:
                 with open(path, "w", encoding=encoding) as f:
                     f.write(default)  # Create an empty file
-                logger.warning("File %s not found. Created new file with default content.", path)
+                logger.warning(f"File {path} not found. Created new file with default content.")
                 return default
     return '{}'
 
@@ -60,7 +60,7 @@ def save_player_names(names):
         f.flush()
         os.fsync(f.fileno())
     os.replace(temp_name, NEW_NAME_FILE)
-    logger.info('Saved file %s', NEW_NAME_FILE)
+    logger.info(f'Saved file {NEW_NAME_FILE}')
 
 
 def remove_player_names(names_to_remove, updated_names):
@@ -70,7 +70,7 @@ def remove_player_names(names_to_remove, updated_names):
             del names[name]
     names.update(updated_names)
     save_player_names(names)
-    logger.info('Removed %d player names', len(names_to_remove))
+    logger.info(f'Removed {len(names_to_remove)} player names')
 
 
 def save_dict(fn, _dict):

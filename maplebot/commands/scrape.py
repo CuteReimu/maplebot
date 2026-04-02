@@ -26,7 +26,7 @@ def assert_player_onrank(name):
         response = httpx.get(url, timeout=20)
         data = response.json()
     except Exception as e:
-        logger.error("Error fetching data for %s: %s", name, e)
+        logger.error(f"Error fetching data for {name}: {e}")
         return True  # Assume online if error occurs
 
     count = data['totalCount'] if data is not None else 1  # Make no conclusion if error occurs
@@ -40,16 +40,13 @@ def try_request(url, name, retries=3, wait=10):
         try:
             response = httpx.get(url.format(name), timeout=20)
             data = response.json()
-            logger.info("Requested for %s successfully", name)
+            logger.info(f"Requested for {name} successfully")
             break
         except Exception as e:
             status = response.status_code if response is not None else 'N/A'
-            logger.warning(
-                "Error fetching player data for %s: %s, retrying (%d/3)..., request status: %s",
-                name, e, retry + 1, status,
-            )
+            logger.warning(f"Error fetching player data for {name}: {e}, retrying ({retry+1}/3)..., request status: {status}")
             if retry == 2:
-                logger.warning("Fetch is too fast, waiting for %d seconds", wait)
+                logger.warning(f"Fetch is too fast, waiting for {wait} seconds")
                 time.sleep(wait)
             continue
     return data
@@ -67,7 +64,7 @@ def request_from_name_list():
             player_dict['img'] = ""
 
         if i % 50 == 0:
-            logger.info("Processing player %d...", i)
+            logger.info(f"Processing player {i}...")
 
         data = try_request(LEGION_URL, name)
         count = data['totalCount'] if data is not None else 0
@@ -83,11 +80,11 @@ def request_from_name_list():
                 if time_in_days > 3:
                     names_to_del.append(name)
                     del names_dict[name]
-                logger.info("Player %s does not exist for %d days.", name, time_in_days)
+                logger.info(f"Player {name} does not exist for {time_in_days} days.")
                 time.sleep(SLEEP_PER_REQUEST * 2)  # Avoid hitting rate limits
                 continue
 
-        logger.info("%s data found", name)
+        logger.info(f"{name} data found")
 
         player_name = data['ranks'][0]['characterName']
         exp = data['ranks'][0]['exp']
@@ -107,14 +104,11 @@ def request_from_name_list():
                 img64 = base64.b64encode(response.content).decode('utf-8')
             else:
                 img64 = ""
-                logger.warning(
-                    "URL for %s does not point to an image, content type: %s",
-                    player_name, response.headers.get('Content-Type', 'N/A'),
-                )
-
+                content_type = response.headers.get('Content-Type', 'N/A')
+                logger.warning(f"URL for {player_name} does not point to an image, content type: {content_type}")
         except Exception as e:
             img64 = ""
-            logger.warning("Error fetching image for %s: %s", player_name, e)
+            logger.warning(f"Error fetching image for {player_name}: {e}")
 
         cur_dict = {
             "name": player_name,
@@ -142,7 +136,7 @@ def request_from_name_list():
 
         save_dict(PLAYER_DICT_FN.format(name), player_dict)
         names_dict[name] = datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S")
-        logger.info("Updated data for player %s", name)
+        logger.info(f"Updated data for player {name}")
 
         time.sleep(SLEEP_PER_REQUEST)  # Avoid hitting rate limits
     remove_player_names(names_to_del, names_dict)
@@ -155,8 +149,8 @@ async def scrape_role_background():
     try:
         request_from_name_list()
     except Exception as e:
-        logger.error("Data scrape failed: %s", e)
+        logger.error(f"Data scrape failed: {e}")
         raise
     end = time.time()
     elapsed = (end - sta) / 60
-    logger.info("Data scrape completed in %.2f minutes", elapsed)
+    logger.info(f"Data scrape completed in {elapsed:.2f} minutes")

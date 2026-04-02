@@ -25,7 +25,7 @@ _CONFIG_FILE = os.path.join(_CONFIG_DIR, "Config.yml")
 if not os.path.exists(_CONFIG_FILE):
     with open(_CONFIG_FILE, "w", encoding="utf-8") as file:
         yaml.dump(_CONFIG_DEFAULTS, file, allow_unicode=True)
-    logger.info("已生成默认配置文件: %s", _CONFIG_FILE)
+    logger.info(f"已生成默认配置文件: {_CONFIG_FILE}")
 
 config = Dynaconf(
     settings_files=[_CONFIG_FILE],

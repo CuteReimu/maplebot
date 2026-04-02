@@ -40,7 +40,7 @@ def serialize_message(msg: V11Message) -> str:
             if local_path:
                 segments.append({"type": "image", "data": {"file": local_path}})
             else:
-                logger.warning("图片段无法获取内容，已跳过: %s", data)
+                logger.warning(f"图片段无法获取内容，已跳过: {data}")
         else:
             segments.append({"type": seg_type, "data": data})
 
@@ -68,7 +68,7 @@ def _download_image(url: str) -> str | None:
         cached = os.path.join(_CACHE_DIR, f"{url_hash}{ext}")
 
         if not os.path.exists(cached):
-            logger.info("下载图片: %s -> %s", url, cached)
+            logger.info(f"下载图片: {url} -> {cached}")
             with httpx.Client(timeout=15, follow_redirects=True) as client:
                 resp = client.get(url)
                 resp.raise_for_status()
@@ -77,7 +77,7 @@ def _download_image(url: str) -> str | None:
 
         return cached
     except Exception as e:  # pylint: disable=broad-except
-        logger.warning("获取图片失败 (%s): %s", url, e)
+        logger.warning(f"获取图片失败 ({url}): {e}")
         return None
 
 
@@ -87,7 +87,7 @@ def _read_file_base64(path: str) -> str | None:
         with open(path, "rb") as f:
             return base64.b64encode(f.read()).decode("ascii")
     except Exception as e:  # pylint: disable=broad-except
-        logger.warning("读取文件失败 (%s): %s", path, e)
+        logger.warning(f"读取文件失败 ({path}): {e}")
         return None
 
 
@@ -106,7 +106,7 @@ def deserialize_to_segments(raw: str) -> list[V11Seg]:
         segments_data: list[dict] = json.loads(raw)
     except (json.JSONDecodeError, TypeError):
         # 兼容旧版：直接当文本
-        logger.debug("词条内容不是 JSON，作为文本处理: %s", raw[:80])
+        logger.debug(f"词条内容不是 JSON，作为文本处理: {raw[:80]}")
         return [V11Seg.text(str(raw))]
 
     result: list[V11Seg] = []
@@ -152,7 +152,7 @@ def deserialize_to_segments(raw: str) -> list[V11Seg]:
             try:
                 result.append(V11Seg(seg_type, data))
             except Exception:  # pylint: disable=broad-except
-                logger.warning("无法还原消息段类型 %s，已跳过", seg_type)
+                logger.warning(f"无法还原消息段类型 {seg_type}，已跳过")
 
     return result
 

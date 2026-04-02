@@ -443,7 +443,7 @@ def calculate_cube_all() -> Message | None:
         )
         return Message(MessageSegment.image(f"base64://{img}"))
     except Exception as e:
-        logger.error("生成表格失败: %s", e)
+        logger.error(f"生成表格失败: {e}")
         return None
 
 
@@ -500,5 +500,5 @@ def calculate_cube(s: str) -> Message | None:
         )
         return Message(MessageSegment.image(f"base64://{img}"))
     except Exception as e:
-        logger.error("生成表格失败: %s", e)
+        logger.error(f"生成表格失败: {e}")
         return None

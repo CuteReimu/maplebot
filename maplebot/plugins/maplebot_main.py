@@ -588,7 +588,7 @@ async def _notify_scrape_failure():
         try:
             await bot.send_group_msg(group_id=int(group), message=msg)
         except Exception as ex:
-            logger.warning("[cron] 发送告警通知失败 (group=%s): %s", group, ex)
+            logger.warning(f"[cron] 发送告警通知失败 (group={group}): {ex}")
 
 
 async def _cron_find_role():
@@ -597,7 +597,7 @@ async def _cron_find_role():
         await scrape_role_background()
         logger.info("[cron] 完成角色数据预抓取")
     except Exception as e:
-        logger.error("[cron] 角色数据预抓取失败: %s", e)
+        logger.error(f"[cron] 角色数据预抓取失败: {e}")
         await _notify_scrape_failure()
 
 

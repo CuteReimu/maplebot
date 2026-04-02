@@ -32,5 +32,5 @@ def get_more_damage_arc() -> str | None:
             width=480,
         )
     except Exception as e:
-        logger.error("render chart failed: %s", e)
+        logger.error(f"render chart failed: {e}")
         return None

@@ -383,7 +383,7 @@ def calculate_boom_count(content: str, new_kms: bool) -> Message | None:
         img = render_pie(values, labels, title)
         return Message(MessageSegment.image(f"base64://{img}"))
     except Exception as e:
-        logger.error("render chart failed: %s", e)
+        logger.error(f"render chart failed: {e}")
         return None
 
 
@@ -415,7 +415,7 @@ def calculate_star_force(new_kms: bool, content: str) -> Message | None:
             item_level, cur, des, bp, True, new_kms, to, ftf, be,
         )
     except Exception as e:
-        logger.error("计算失败: %s", e)
+        logger.error(f"计算失败: {e}")
         return Message("计算失败")
 
     # 构建活动说明
@@ -476,7 +476,7 @@ def calculate_star_force(new_kms: bool, content: str) -> Message | None:
                 img = render_pie(pie_values, pie_labels, unit=unit)
                 pie_img_seg = MessageSegment.image(f"base64://{img}")
             except Exception as e:
-                logger.error("render chart failed: %s", e)
+                logger.error(f"render chart failed: {e}")
 
     # 将文字和饼图合并为一条消息
     if pie_img_seg is not None:
