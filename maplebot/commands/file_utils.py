@@ -9,15 +9,10 @@ from nonebot.log import logger
 NAME_FILE = "player_name.txt"
 NEW_NAME_FILE = "player_name.json"
 PLAYER_DICT_FN = "player_data/player_{}.json"
-LVL_EXP_FILE = "lvl_data.json"
 
 if not os.path.exists("./player_data"):
     os.makedirs("./player_data")
 assert os.path.isdir("./player_data")
-if not os.path.exists("./lvl_data.json"):
-    with open("./lvl_data.json", "w", encoding="utf-8") as f:
-        f.write('{"single": {}, "cumulative": {}}')
-assert os.path.exists("./lvl_data.json")
 
 logger.info(f"Program started at {datetime.datetime.now().strftime('%Y-%m-%d %H:%M:%S')}")
 

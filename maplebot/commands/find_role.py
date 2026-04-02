@@ -19,7 +19,6 @@ from maplebot.utils.config import level_exp_data
 # ---------- 文件路径 ----------
 _PLAYER_DATA_DIR = "player_data"
 _PLAYER_NAME_FILE = "player_name.json"
-_LVL_DATA_FILE = "lvl_data.json"
 os.makedirs(_PLAYER_DATA_DIR, exist_ok=True)
 
 
@@ -49,9 +48,6 @@ def _load_player_names() -> dict[str, str]:
 def _save_player_names(names: dict[str, str]):
     _save_json(_PLAYER_NAME_FILE, names)
 
-
-def _load_lvl_data() -> dict:
-    return _load_json(_LVL_DATA_FILE, {"single": {}, "cumulative": {}})
 
 
 # ---------- 经验处理工具 ----------
@@ -196,9 +192,14 @@ def _try_local(name: str) -> Message | None:
     if not player_dict:
         return None
 
-    lvl_data = _load_lvl_data()
-    lvl_single = lvl_data.get("single", {})
-    lvl_culm = lvl_data.get("cumulative", {})
+    lvl_single: dict[str, int] = {}
+    lvl_culm: dict[str, int] = {}
+    acc = 0
+    for i in range(1, 300):
+        v = int(level_exp_data.get(f"data.{i}", 0) or 0)
+        lvl_single[str(i)] = v
+        lvl_culm[str(i)] = acc
+        acc += v
 
     last = player_dict["data"][-1]
     pname = last["name"]
