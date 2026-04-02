@@ -1,6 +1,6 @@
 """玩家数据文件工具"""
+import asyncio
 import json
-import time
 import os
 import datetime
 
@@ -10,6 +10,9 @@ NAME_FILE = "player_name.txt"
 NEW_NAME_FILE = "player_name.json"
 PLAYER_DICT_FN = "player_data/player_{}.json"
 
+# 全局文件锁：保护所有文件读写操作
+_file_lock = asyncio.Lock()
+
 if not os.path.exists("./player_data"):
     os.makedirs("./player_data")
 assert os.path.isdir("./player_data")
@@ -17,68 +20,73 @@ assert os.path.isdir("./player_data")
 logger.info(f"Program started at {datetime.datetime.now().strftime('%Y-%m-%d %H:%M:%S')}")
 
 
-def read_with_retry(path, encoding="utf-8", attempts=3, delay=0.05, default=""):
+async def read_with_retry(path, encoding="utf-8", attempts=3, delay=0.05, default=""):
     for i in range(attempts):
         try:
-            with open(path, "r", encoding=encoding) as f:
-                logger.info(f"Successfully read {path}")
-                return f.read()
+            async with _file_lock:
+                with open(path, "r", encoding=encoding) as f:
+                    content = f.read()
+            logger.info(f"Successfully read {path}")
+            return content
         except FileNotFoundError:
             if i < attempts - 1:
-                time.sleep(delay)
+                await asyncio.sleep(delay)
             else:
-                with open(path, "w", encoding=encoding) as f:
-                    f.write(default)  # Create an empty file
+                async with _file_lock:
+                    with open(path, "w", encoding=encoding) as f:
+                        f.write(default)  # Create an empty file
                 logger.warning(f"File {path} not found. Created new file with default content.")
                 return default
     return '{}'
 
 
-def load_player_names():
+async def load_player_names():
     if os.path.exists(NEW_NAME_FILE):
-        content = read_with_retry(NEW_NAME_FILE, encoding="utf-8", default="[]")
+        content = await read_with_retry(NEW_NAME_FILE, encoding="utf-8", default="{}")
         names = json.loads(content)
         logger.info('Loaded player name from json')
         return names
-    content = read_with_retry(NAME_FILE, encoding="utf-8", default="")
+    content = await read_with_retry(NAME_FILE, encoding="utf-8", default="")
     _names = [line.strip() for line in content.splitlines() if line.strip()]
     names = {name: datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S") for name in _names}
-    save_dict(NEW_NAME_FILE, names)
+    await save_dict(NEW_NAME_FILE, names)
     logger.info('Loaded player name from txt and converted to json')
     return names
 
 
-def save_player_names(names):
+async def save_player_names(names):
     temp_name = f"{NEW_NAME_FILE}.tmp"
-    with open(temp_name, "w", encoding="utf-8") as f:
-        json.dump(names, f, ensure_ascii=False, indent=4)
-        f.flush()
-        os.fsync(f.fileno())
-    os.replace(temp_name, NEW_NAME_FILE)
+    async with _file_lock:
+        with open(temp_name, "w", encoding="utf-8") as f:
+            json.dump(names, f, ensure_ascii=False, indent=4)
+            f.flush()
+            os.fsync(f.fileno())
+        os.replace(temp_name, NEW_NAME_FILE)
     logger.info(f'Saved file {NEW_NAME_FILE}')
 
 
-def remove_player_names(names_to_remove, updated_names):
-    names = load_player_names()
+async def remove_player_names(names_to_remove, updated_names):
+    names = await load_player_names()
     for name in names_to_remove:
         if name in names:
             del names[name]
     names.update(updated_names)
-    save_player_names(names)
+    await save_player_names(names)
     logger.info(f'Removed {len(names_to_remove)} player names')
 
 
-def save_dict(fn, _dict):
+async def save_dict(fn, _dict):
     temp_name = f"{fn}.tmp"
-    with open(temp_name, "w", encoding="utf8") as f:
-        json.dump(_dict, f, ensure_ascii=False, indent=4)
-        f.flush()
-        os.fsync(f.fileno())
-    os.replace(temp_name, fn)
+    async with _file_lock:
+        with open(temp_name, "w", encoding="utf8") as f:
+            json.dump(_dict, f, ensure_ascii=False, indent=4)
+            f.flush()
+            os.fsync(f.fileno())
+        os.replace(temp_name, fn)
 
 
-def load_dict(fn):
-    content = read_with_retry(fn, encoding="utf8", default=json.dumps({}))
+async def load_dict(fn):
+    content = await read_with_retry(fn, encoding="utf8", default=json.dumps({}))
     try:
         _dict = json.loads(content)
     except json.JSONDecodeError:

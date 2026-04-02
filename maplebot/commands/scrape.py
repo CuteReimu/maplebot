@@ -1,3 +1,4 @@
+import asyncio
 import base64
 import datetime
 import time
@@ -33,12 +34,13 @@ def assert_player_onrank(name):
     return count > 0
 
 
-def try_request(url, name, retries=3, wait=10):
+async def try_request(url, name, retries=3, wait=10):
     data = None
     for retry in range(retries):
         response = None
         try:
-            response = httpx.get(url.format(name), timeout=20)
+            async with httpx.AsyncClient(timeout=20) as client:
+                response = await client.get(url.format(name))
             data = response.json()
             logger.info(f"Requested for {name} successfully")
             break
@@ -47,18 +49,18 @@ def try_request(url, name, retries=3, wait=10):
             logger.warning(f"Error fetching player data for {name}: {e}, retrying ({retry+1}/3)..., request status: {status}")
             if retry == 2:
                 logger.warning(f"Fetch is too fast, waiting for {wait} seconds")
-                time.sleep(wait)
+                await asyncio.sleep(wait)
             continue
     return data
 
 
-def request_from_name_list():
-    names_dict = load_player_names()
+async def request_from_name_list():
+    names_dict = await load_player_names()
     names = list(names_dict.keys())
     names_to_del = []
 
     for i, name in enumerate(names):
-        player_dict = load_dict(PLAYER_DICT_FN.format(name))
+        player_dict = await load_dict(PLAYER_DICT_FN.format(name))
         if len(player_dict) == 0:
             player_dict['data'] = []
             player_dict['img'] = ""
@@ -66,10 +68,11 @@ def request_from_name_list():
         if i % 50 == 0:
             logger.info(f"Processing player {i}...")
 
-        data = try_request(LEGION_URL, name)
+        # 网络请求在锁外进行
+        data = await try_request(LEGION_URL, name)
         count = data['totalCount'] if data is not None else 0
         if count == 0:
-            data = try_request(PLAYER_URL, name)
+            data = await try_request(PLAYER_URL, name)
             count = data['totalCount'] if data is not None else 0
 
             if count == 0:
@@ -81,7 +84,7 @@ def request_from_name_list():
                     names_to_del.append(name)
                     del names_dict[name]
                 logger.info(f"Player {name} does not exist for {time_in_days} days.")
-                time.sleep(SLEEP_PER_REQUEST * 2)  # Avoid hitting rate limits
+                await asyncio.sleep(SLEEP_PER_REQUEST * 2)  # Avoid hitting rate limits
                 continue
 
         logger.info(f"{name} data found")
@@ -96,8 +99,10 @@ def request_from_name_list():
         legion_lvl = data['ranks'][0].get('legionLevel', 0)
         legion_raid = data['ranks'][0].get('raidPower', 0)
 
+        # 网络请求在锁外进行
         try:
-            response = httpx.get(img_url, timeout=20)
+            async with httpx.AsyncClient(timeout=20) as client:
+                response = await client.get(img_url)
             if response.status_code != 200:
                 raise Exception(f"Failed to fetch image, status: {response.status_code}")
             if response.headers.get('Content-Type', '').startswith('image/'):
@@ -134,12 +139,12 @@ def request_from_name_list():
         player_dict['data'].append(cur_dict)
         player_dict['data'] = sorted(player_dict['data'], key=lambda x: x['datetime'])[-BUFFER_SIZE:]
 
-        save_dict(PLAYER_DICT_FN.format(name), player_dict)
+        await save_dict(PLAYER_DICT_FN.format(name), player_dict)
         names_dict[name] = datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S")
         logger.info(f"Updated data for player {name}")
 
-        time.sleep(SLEEP_PER_REQUEST)  # Avoid hitting rate limits
-    remove_player_names(names_to_del, names_dict)
+        await asyncio.sleep(SLEEP_PER_REQUEST)  # Avoid hitting rate limits
+    await remove_player_names(names_to_del, names_dict)
 
 
 async def scrape_role_background():
@@ -147,7 +152,7 @@ async def scrape_role_background():
     sta = time.time()
     logger.info("Starting data scrape...")
     try:
-        request_from_name_list()
+        await request_from_name_list()
     except Exception as e:
         logger.error(f"Data scrape failed: {e}")
         raise

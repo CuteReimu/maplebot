@@ -13,6 +13,7 @@ import numpy as np
 from nonebot.adapters.onebot.v11 import Message, MessageSegment
 from nonebot.log import logger
 
+from maplebot.commands.file_utils import _file_lock
 from maplebot.utils.class_name import translate_class_name, translate_class_id
 from maplebot.utils.config import level_exp_data
 
@@ -22,31 +23,33 @@ _PLAYER_NAME_FILE = "player_name.json"
 os.makedirs(_PLAYER_DATA_DIR, exist_ok=True)
 
 
-def _load_json(path: str, default=None):
+async def _load_json(path: str, default=None):
     if default is None:
         default = {}
     if not os.path.exists(path):
         return default
     try:
-        with open(path, "r", encoding="utf-8") as f:
-            return json.load(f)
+        async with _file_lock:
+            with open(path, "r", encoding="utf-8") as f:
+                return json.load(f)
     except (json.JSONDecodeError, OSError):
         return default
 
 
-def _save_json(path: str, data):
+async def _save_json(path: str, data):
     tmp = path + ".tmp"
-    with open(tmp, "w", encoding="utf-8") as f:
-        json.dump(data, f, ensure_ascii=False, indent=4)
-    os.replace(tmp, path)
+    async with _file_lock:
+        with open(tmp, "w", encoding="utf-8") as f:
+            json.dump(data, f, ensure_ascii=False, indent=4)
+        os.replace(tmp, path)
 
 
-def _load_player_names() -> dict[str, str]:
-    return _load_json(_PLAYER_NAME_FILE, {})
+async def _load_player_names() -> dict[str, str]:
+    return await _load_json(_PLAYER_NAME_FILE, {})
 
 
-def _save_player_names(names: dict[str, str]):
-    _save_json(_PLAYER_NAME_FILE, names)
+async def _save_player_names(names: dict[str, str]):
+    await _save_json(_PLAYER_NAME_FILE, names)
 
 
 
@@ -170,25 +173,25 @@ def _draw_chart(days, dated_exps, dated_lvls) -> str:
 
 
 # ---------- 主查询逻辑 ----------
-def _process_player_data(name: str) -> dict:
+async def _process_player_data(name: str) -> dict:
     """尝试从本地缓存读取玩家数据"""
-    player_names = _load_player_names()
+    player_names = await _load_player_names()
     lower_map = {n.lower(): n for n in player_names}
     if name.lower() not in lower_map:
         player_names[name] = datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S")
-        _save_player_names(player_names)
+        await _save_player_names(player_names)
         return {}
     actual_name = lower_map[name.lower()]
     player_file = os.path.join(_PLAYER_DATA_DIR, f"player_{actual_name}.json")
-    player_dict = _load_json(player_file, {})
+    player_dict = await _load_json(player_file, {})
     if not player_dict or "data" not in player_dict or not player_dict["data"]:
         return {}
     return player_dict
 
 
-def _try_local(name: str) -> Message | None:
+async def _try_local(name: str) -> Message | None:
     """从本地数据生成回复"""
-    player_dict = _process_player_data(name)
+    player_dict = await _process_player_data(name)
     if not player_dict:
         return None
 
@@ -250,7 +253,7 @@ def _try_local(name: str) -> Message | None:
 async def find_role(name: str) -> Message | str:
     """查询角色信息，优先本地数据，失败则请求 maplestory.gg API"""
     # 1. 尝试本地数据
-    local = _try_local(name)
+    local = await _try_local(name)
     if local:
         return local
 
