@@ -1,5 +1,5 @@
 """Boss 开车订阅"""
-from nonebot.adapters.onebot.v11 import Bot, GroupMessageEvent, MessageSegment
+from nonebot.adapters.onebot.v11 import Bot, GroupMessageEvent, Message, MessageSegment
 from nonebot.log import logger
 
 from maplebot.utils import db
@@ -45,11 +45,11 @@ async def handle_boss_party(
     event: GroupMessageEvent,
     boss_list: list[str],
     content: str,
-) -> str | None:
+) -> Message | None:
     """处理 '我要开车' 命令"""
     arr = _get_boss_chars(boss_list, content)
     if not arr:
-        return "不准开车!"
+        return Message("不准开车!")
 
     # 收集订阅者
     qq_numbers: set[str] = set()
@@ -71,10 +71,9 @@ async def handle_boss_party(
     except Exception as e:
         logger.error(f"获取群成员列表失败: {e}")
 
-    msg = f"{''.join(arr)} 发车了! "
-    at_list = list(qq_numbers)[:20]
-    for qq in at_list:
-        msg += str(MessageSegment.at(int(qq)))
+    msg = Message(MessageSegment.text(f"{''.join(arr)} 发车了! "))
+    for qq in list(qq_numbers)[:20]:
+        msg += MessageSegment.at(int(qq))
 
     return msg
 
