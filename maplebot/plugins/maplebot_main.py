@@ -47,7 +47,7 @@ from maplebot.commands.level_exp import (
 from maplebot.commands.star_force import calculate_star_force, calculate_boom_count
 from maplebot.utils.config import config, qun_db, find_role_data
 from maplebot.utils.dict_tfidf import get_familiar_value, add_into_dict
-from maplebot.utils.dict_entry import serialize_message, build_message
+from maplebot.utils.dict_entry import serialize_message, build_message, cleanup_orphan_images
 
 logger.opt(colors=True).info("<green>✅ maplebot_main 插件加载成功！</green>")
 
@@ -618,6 +618,17 @@ async def _cron_find_role():
         await _notify_scrape_failure()
 
 
+async def _cron_cleanup_images():
+    """定时清理孤立词条图片"""
+    logger.info("[cron] 开始清理孤立词条图片")
+    try:
+        m = qun_db.get_string_map_string("data")
+        moved, deleted = cleanup_orphan_images(m)
+        logger.info(f"[cron] 图片清理完成：移入暂存 {moved} 张，删除过期 {deleted} 张")
+    except Exception as e:
+        logger.error(f"[cron] 词条图片清理失败: {e}")
+
+
 if os.getenv("ENVIRONMENT", "dev").lower() == "prod":
     for _hour in (1, 9, 15):
         scheduler.add_job(
@@ -629,3 +640,13 @@ if os.getenv("ENVIRONMENT", "dev").lower() == "prod":
             id=f"find_role_bg_{_hour:02d}",
             timezone="Asia/Shanghai",
         )
+
+scheduler.add_job(
+    _cron_cleanup_images,
+    "cron",
+    hour=4,
+    minute=0,
+    second=0,
+    id="cleanup_orphan_images",
+    timezone="Asia/Shanghai",
+)

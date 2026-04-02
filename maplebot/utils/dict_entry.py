@@ -5,6 +5,8 @@ import base64
 import hashlib
 import json
 import os
+import shutil
+import time
 from typing import Any
 
 import httpx
@@ -14,6 +16,11 @@ from nonebot.log import logger
 # ---- 图片缓存目录（仅用于持久化原始文件，避免重复下载） ----
 _CACHE_DIR = "chat_images"
 os.makedirs(_CACHE_DIR, exist_ok=True)
+
+# ---- 孤立图片暂存目录（移入后保留 7 天再删除） ----
+_STAGING_DIR = "chat_images1"
+os.makedirs(_STAGING_DIR, exist_ok=True)
+_STAGING_KEEP_DAYS = 7
 
 
 # ===========================================================================
@@ -169,3 +176,87 @@ def build_message(raw: str) -> V11Message | None:
     for seg in segs:
         msg += seg
     return msg
+
+
+# ===========================================================================
+# 孤立图片清理
+# ===========================================================================
+
+def collect_referenced_images(entries: dict[str, str]) -> set[str]:
+    """
+    从所有词条 JSON 值中提取所有本地图片的绝对路径。
+    用于后续与 chat_images/ 目录对比，找出孤立文件。
+    """
+    referenced: set[str] = set()
+    for raw in entries.values():
+        try:
+            segments_data: list[dict] = json.loads(raw)
+        except (json.JSONDecodeError, TypeError):
+            continue
+        for seg in segments_data:
+            if seg.get("type") == "image":
+                file: str = seg.get("data", {}).get("file", "")
+                if file.startswith("file://"):
+                    file = file[len("file://"):]
+                if file:
+                    referenced.add(os.path.normpath(os.path.abspath(file)))
+    return referenced
+
+
+def cleanup_orphan_images(entries: dict[str, str]) -> tuple[int, int]:
+    """
+    清理孤立的本地图片缓存：
+
+    1. 扫描 chat_images/ 目录，将不属于任何词条的图片移入
+       chat_images1/（暂存区），并刷新其 mtime 为当前时间。
+    2. 扫描 chat_images1/ 目录，删除 mtime 超过 7 天的文件。
+
+    返回 (moved_count, deleted_count)。
+    """
+    os.makedirs(_STAGING_DIR, exist_ok=True)
+
+    referenced = collect_referenced_images(entries)
+    moved = 0
+
+    # --- 第一步：把孤立文件移入暂存区 ---
+    try:
+        for fname in os.listdir(_CACHE_DIR):
+            fpath = os.path.join(_CACHE_DIR, fname)
+            if not os.path.isfile(fpath):
+                continue
+            abs_path = os.path.normpath(os.path.abspath(fpath))
+            if abs_path not in referenced:
+                dest = os.path.join(_STAGING_DIR, fname)
+                try:
+                    if os.path.exists(dest):
+                        os.remove(dest)
+                    shutil.move(fpath, dest)
+                    # 刷新 mtime：记录"移入暂存区"的时间
+                    os.utime(dest)
+                    moved += 1
+                    logger.info(f"[图片清理] 移入暂存区: {fpath} -> {dest}")
+                except Exception as e:  # pylint: disable=broad-except
+                    logger.warning(f"[图片清理] 移动文件失败 ({fpath}): {e}")
+    except Exception as e:  # pylint: disable=broad-except
+        logger.warning(f"[图片清理] 遍历 {_CACHE_DIR} 失败: {e}")
+
+    # --- 第二步：删除暂存区中超过 7 天的文件 ---
+    deleted = 0
+    cutoff = time.time() - _STAGING_KEEP_DAYS * 24 * 3600
+    try:
+        for fname in os.listdir(_STAGING_DIR):
+            fpath = os.path.join(_STAGING_DIR, fname)
+            if not os.path.isfile(fpath):
+                continue
+            try:
+                if os.path.getmtime(fpath) < cutoff:
+                    os.remove(fpath)
+                    deleted += 1
+                    logger.info(f"[图片清理] 已删除过期暂存文件: {fpath}")
+            except Exception as e:  # pylint: disable=broad-except
+                logger.warning(f"[图片清理] 删除文件失败 ({fpath}): {e}")
+    except Exception as e:  # pylint: disable=broad-except
+        logger.warning(f"[图片清理] 遍历 {_STAGING_DIR} 失败: {e}")
+
+    logger.info(f"[图片清理] 完成：移入暂存 {moved} 张，删除过期 {deleted} 张")
+    return moved, deleted
