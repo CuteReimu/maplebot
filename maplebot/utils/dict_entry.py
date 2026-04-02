@@ -260,3 +260,32 @@ def cleanup_orphan_images(entries: dict[str, str]) -> tuple[int, int]:
 
     logger.info(f"[图片清理] 完成：移入暂存 {moved} 张，删除过期 {deleted} 张")
     return moved, deleted
+
+
+# ===========================================================================
+# 词条图片完整性检查
+# ===========================================================================
+
+def find_entries_with_missing_images(entries: dict[str, str]) -> list[str]:
+    """
+    遍历所有词条，返回含有至少一张本地找不到的图片的词条 key 列表（已排序）。
+
+    "找不到"指词条 JSON 中记录的本地文件路径不存在于磁盘，
+    例如文件被手动删除、或被清理任务移入了暂存区。
+    """
+    missing_keys: list[str] = []
+    for key, raw in entries.items():
+        try:
+            segments_data: list[dict] = json.loads(raw)
+        except (json.JSONDecodeError, TypeError):
+            continue
+        for seg in segments_data:
+            if seg.get("type") == "image":
+                file: str = seg.get("data", {}).get("file", "")
+                if file.startswith("file://"):
+                    file = file[len("file://"):]
+                # 图片路径存在但文件不在磁盘上 → 记录此词条
+                if file and not os.path.isfile(file):
+                    missing_keys.append(key)
+                    break  # 每个词条只记录一次
+    return sorted(missing_keys)

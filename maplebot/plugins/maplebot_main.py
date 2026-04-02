@@ -47,7 +47,7 @@ from maplebot.commands.level_exp import (
 from maplebot.commands.star_force import calculate_star_force, calculate_boom_count
 from maplebot.utils.config import config, qun_db, find_role_data
 from maplebot.utils.dict_tfidf import get_familiar_value, add_into_dict
-from maplebot.utils.dict_entry import serialize_message, build_message, cleanup_orphan_images
+from maplebot.utils.dict_entry import serialize_message, build_message, cleanup_orphan_images, find_entries_with_missing_images
 
 logger.opt(colors=True).info("<green>✅ maplebot_main 插件加载成功！</green>")
 
@@ -511,6 +511,27 @@ async def _handle_delete_dict(bot: Bot, event: Event, args=CommandArg()):
     key = _deal_key(content)
     if key:
         await _deal_remove_dict(_delete_dict_cmd, key)
+
+
+# ---- 列出过期图片（管理员）：找出本地图片文件已丢失的词条 ----
+_missing_img_cmd = on_command("列出过期图片", rule=_valid_group_rule, priority=10, block=True)
+
+
+@_missing_img_cmd.handle()
+async def _handle_missing_img(bot: Bot, event: Event):
+    if not await _is_admin(bot, event):
+        return
+    m = qun_db.get_string_map_string("data")
+    missing = find_entries_with_missing_images(m)
+    if not missing:
+        await _missing_img_cmd.finish("所有词条的图片均正常，未发现缺失文件。")
+        return
+    total = len(missing)
+    display = missing[:50]
+    lines = [f"{i + 1}. {k}" for i, k in enumerate(display)]
+    header = f"以下 {total} 个词条存在图片文件缺失：\n"
+    suffix = f"\n（仅显示前 50 条，共 {total} 条）" if total > 50 else ""
+    await _missing_img_cmd.finish(header + "\n".join(lines) + suffix)
 
 
 # ====================== 词条模糊匹配（最低优先级） ======================
