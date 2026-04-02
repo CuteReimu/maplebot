@@ -108,13 +108,13 @@ def render_pie(
     占比 >= 3% 的区块在扇形内部显示数值；更小的区块不显示内部文字。
     """
     total = sum(values) or 1
-    _MIN_PCT_LABEL = 3.0  # 低于此占比的扇形不在内部显示文字
+    min_pct_label = 3.0  # 低于此占比的扇形不在内部显示文字
 
     fig, ax = plt.subplots(figsize=(8, 6))
     fig.subplots_adjust(left=0.0, right=0.75)  # 右侧留空放图例
 
     def _autopct(pct: float) -> str:
-        if pct < _MIN_PCT_LABEL:
+        if pct < min_pct_label:
             return ""
         if unit:
             # 根据百分比反查对应的值
@@ -126,7 +126,7 @@ def render_pie(
             return f"{pct:.1f}%"
         return f"{pct:.1f}%"
 
-    wedges, texts, autotexts = ax.pie(
+    wedges, _, autotexts = ax.pie(
         values,
         labels=None,          # 标签改用图例，避免在扇形旁重叠
         autopct=_autopct,
@@ -140,7 +140,7 @@ def render_pie(
 
     # 用图例显示所有标签，图例放在图右侧
     legend_labels = []
-    for i, (label, v) in enumerate(zip(labels, values)):
+    for (label, v) in zip(labels, values):
         pct = v / total * 100
         if unit:
             legend_labels.append(f"{label}: {v:.1f}{unit} ({pct:.1f}%)")
