@@ -1,5 +1,7 @@
 *.log
 *.yml
+!/.github/*.yml
+!/.github/**/*.yml
 .env.local
 .idea/
 .vscode/

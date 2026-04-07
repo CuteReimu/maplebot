@@ -176,7 +176,7 @@ def _try_encode_gb2312(name):
         encoded_name = name.encode('gb2312').decode('latin1')
         logger.info(f"Converted name {name} to latin1 {encoded_name}")
         return encoded_name
-    except Exception as e:
+    except Exception:
         return name
 
 # ---------- 主查询逻辑 ----------
