@@ -1,5 +1,11 @@
 # maplebot (Python 版)
 
+![](https://img.shields.io/python/required-version-toml?tomlFilePath=https%3A%2F%2Fraw.githubusercontent.com%2FCuteReimu%2Fmaplebot%2Frefs%2Fheads%2Fmaster%2Fpyproject.toml
+ "Python版本")
+[![](https://img.shields.io/github/actions/workflow/status/CuteReimu/maplebot/pylint.yml?branch=master)](https://github.com/CuteReimu/maplebot/actions/workflows/pylint.yml "代码分析")
+[![](https://img.shields.io/github/contributors/CuteReimu/maplebot)](https://github.com/CuteReimu/maplebot/graphs/contributors "贡献者")
+[![](https://img.shields.io/github/license/CuteReimu/maplebot)](https://github.com/CuteReimu/maplebot/blob/master/LICENSE "许可协议")
+
 GMSR 群机器人，基于 [NoneBot2](https://github.com/nonebot/nonebot2) + OneBot 11 协议。
 
 ## 开始
@@ -85,12 +91,16 @@ pip install -e ".[dev]"
 tar -xzf maplebot-1.0.0.tar.gz
 cd maplebot-1.0.0
 
-# 按需修改生产配置
-# 首次运行前编辑 .env.prod，填入真实的 HOST/PORT/ONEBOT_WS_URLS 等
-vim .env.prod
-
 # 安装依赖
 pip install .
+
+# 首次运行，先启动一次，会自动生成 .env.prod 模板，方便修改配置。
+bash start.sh
+# 启动后关掉即可
+
+# 按需修改生产配置
+# 编辑 .env.prod，填入真实的 HOST/PORT/ONEBOT_WS_URLS 等
+vim .env.prod
 
 # 启动（`start.sh` 会自动设置 `ENVIRONMENT=prod`）
 bash start.sh
