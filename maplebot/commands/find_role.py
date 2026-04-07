@@ -171,12 +171,20 @@ def _draw_chart(days, dated_exps, dated_lvls) -> str:
     plt.close(fig)
     return base64.b64encode(buf.getvalue()).decode("ascii")
 
+def _try_encode_gb2312(name):
+    try:
+        encoded_name = name.encode('gb2312').decode('latin1')
+        logger.info(f"Converted name {name} to latin1 {encoded_name}")
+        return encoded_name
+    except Exception as e:
+        return name
 
 # ---------- 主查询逻辑 ----------
 async def _process_player_data(name: str) -> dict:
     """尝试从本地缓存读取玩家数据"""
     player_names = await _load_player_names()
     lower_map = {n.lower(): n for n in player_names}
+    name = _try_encode_gb2312(name)
     if name.lower() not in lower_map:
         player_names[name] = datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S")
         await _save_player_names(player_names)
