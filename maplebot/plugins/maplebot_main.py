@@ -54,7 +54,7 @@ logger.opt(colors=True).info("<green>✅ maplebot_main 插件加载成功！</gr
 # ---------- 待添加词条队列 ----------
 _add_db_qq_list: dict[int, str] = {}
 
-_BOSS_LIST = list("3678946M绿黑赛狗")
+_BOSS_LIST = list("4M36789绿黑赛狗卡波马")
 
 _HELP_TIPS = [
     "查询 游戏名", "绑定 游戏名", "解绑",
