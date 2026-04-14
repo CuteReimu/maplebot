@@ -210,6 +210,8 @@ async def _handle_exp_damage(args=CommandArg()):
         result = calculate_exp_damage(content)
         if result:
             await _exp_damage_cmd.finish(result)
+    else:
+        await _exp_damage_cmd.finish("命令格式：\n等级压制 等级差")
 
 
 # ---- 升级经验 ----
