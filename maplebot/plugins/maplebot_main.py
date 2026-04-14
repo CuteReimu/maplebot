@@ -244,17 +244,9 @@ _boom_cmd = on_command("爆炸次数", rule=_valid_group_rule, priority=10, bloc
 @_boom_cmd.handle()
 async def _handle_boom(args=CommandArg()):
     content = args.extract_plain_text().strip()
-    msg1 = calculate_boom_count(content or "", new_kms=True)
-    msg2 = calculate_boom_count(content or "", new_kms=False)
-    combined = V11Message()
-    if msg1:
-        combined += msg1
-    if msg2:
-        combined += msg2
-    if combined:
-        await _boom_cmd.finish(combined)
-    else:
-        await _boom_cmd.finish()
+    msg = calculate_boom_count(content or "", new_kms=True)
+    if msg:
+        await _boom_cmd.finish(msg)
 
 
 # ---- 神秘压制 ----

@@ -360,7 +360,7 @@ def calculate_boom_count(content: str, new_kms: bool) -> Message | None:
     """爆炸次数统计饼图"""
     bp, to, ftf, be = _parse_flags(content)
 
-    title = ("新" if new_kms else "旧") + "0-22星爆炸次数"
+    title = ("" if new_kms else "旧") + "0-22星爆炸次数"
     title += _build_title(bp, to, ftf, be)
 
     booms: dict[int, int] = {}
