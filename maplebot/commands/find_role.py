@@ -3,10 +3,8 @@ import base64
 import datetime
 import io
 import json
-import math
 import os
 
-import httpx
 import matplotlib
 import matplotlib.pyplot as plt
 import numpy as np
@@ -14,7 +12,7 @@ from nonebot.adapters.onebot.v11 import Message, MessageSegment
 from nonebot.log import logger
 
 from maplebot.commands.file_utils import _file_lock
-from maplebot.utils.class_name import translate_class_name, translate_class_id
+from maplebot.utils.class_name import translate_class_name
 from maplebot.utils.config import level_exp_data
 
 # ---------- 文件路径 ----------
@@ -265,105 +263,4 @@ async def find_role(name: str) -> Message | str:
     if local:
         return local
 
-    # 2. 请求 API
-    try:
-        async with httpx.AsyncClient(timeout=20) as client:
-            resp = await client.get(f"https://api.maplestory.gg/v2/public/character/gms/{name}")
-    except Exception as e:
-        logger.error(f"请求失败: {e}")
-        return "请求失败"
-
-    if resp.status_code == 404:
-        return f"{name}已身死道消"
-    if resp.status_code != 200:
-        logger.error(f"请求失败 status={resp.status_code}")
-        return "请求失败"
-
-    try:
-        data = resp.json()
-    except Exception:
-        return "解析失败"
-
-    char = data.get("CharacterData")
-    if not char:
-        return "请求失败"
-
-    # 翻译职业名
-    class_name = translate_class_name(char.get("Class", ""))
-    if not class_name:
-        class_name = translate_class_id(char.get("ClassID", 0))
-
-    msg = Message()
-
-    # 角色图片
-    img_url = char.get("CharacterImageURL", "")
-    if img_url:
-        try:
-            async with httpx.AsyncClient(timeout=10) as client:
-                img_resp = await client.get(img_url)
-            if img_resp.status_code == 200:
-                b64 = base64.b64encode(img_resp.content).decode("ascii")
-                msg += MessageSegment.image(f"base64://{b64}")
-        except Exception:
-            pass
-
-    level = char.get("Level", 0)
-    exp_pct = char.get("EXPPercent", 0)
-    legion = char.get("LegionLevel", 0)
-    text = f"角色名：{char.get('Name', name)}\n职业：{class_name}\n等级：{level} ({exp_pct}%)\n联盟：{legion}\n"
-
-    graph_data = char.get("GraphData", [])
-    if not graph_data or not any(
-        d.get("CurrentEXP", 0) != 0 for d in graph_data
-    ):
-        text += "近日无经验变化"
-        msg += text
-        return msg
-
-    # 处理 GraphData 画图
-    lvl_single = {}
-    for i in range(1, 300):
-        v = level_exp_data.get(f"data.{i}", 0)
-        if v:
-            lvl_single[str(i)] = int(v)
-
-    exp_values = []
-    level_values = []
-    labels = []
-    for j in range(1, len(graph_data)):
-        prev = graph_data[j - 1]
-        curr = graph_data[j]
-        l0, l1 = prev["Level"], curr["Level"]
-        e0, e1 = prev.get("CurrentEXP", 0), curr.get("CurrentEXP", 0)
-        total = 0
-        for lv in range(l0, l1):
-            total += lvl_single.get(str(lv), 0)
-        le0 = lvl_single.get(str(l0), 1) or 1
-        le1 = lvl_single.get(str(l1), 1) or 1
-        total -= (e0 / le0) * lvl_single.get(str(l0), 0)
-        total += (e1 / le1) * lvl_single.get(str(l1), 0)
-        exp_values.append(max(round(total), 0))
-        level_values.append(l1 + e1 / le1)
-        labels.append(curr["DateLabel"][5:])
-
-    if not any(v != 0 for v in exp_values):
-        text += "近日无经验变化"
-        msg += text
-        return msg
-
-    # 预测升级天数
-    avg = sum(exp_values) / len(exp_values) if exp_values else 0
-    total_exp = lvl_single.get(str(level), 1) or 1
-    remaining = total_exp - total_exp * exp_pct / 100
-    days_pred = int(math.ceil(remaining / avg)) if avg > 0 else 10000
-    text += f"预计还有{days_pred}天升级\n"
-    msg += text
-
-    # 画图
-    try:
-        chart = _draw_chart(labels, exp_values, level_values)
-        msg += MessageSegment.image(f"base64://{chart}")
-    except Exception as e:
-        logger.error(f"render chart failed: {e}")
-
-    return msg
+    return "请求失败"
