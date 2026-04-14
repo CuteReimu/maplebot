@@ -122,12 +122,20 @@ def render_pie(
             return ""
         return labels[i]
 
+    _ECHARTS_COLORS = [
+        "#5470c6", "#91cc75", "#fac858", "#ee6666", "#73c0de",
+        "#3ba272", "#fc8452", "#9a60b4", "#ea7ccc",
+    ]
+    slice_colors = [_ECHARTS_COLORS[i % len(_ECHARTS_COLORS)] for i in range(len(values))]
+
     wedges, _, autotexts = ax.pie(
         values,
         labels=None,          # 标签改用图例，避免在扇形旁重叠
         autopct=_autopct,
         pctdistance=0.75,
         startangle=90,
+        counterclock=False,
+        colors=slice_colors,
     )
 
     # 内部文字字号稍小，避免拥挤
