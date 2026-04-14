@@ -45,6 +45,7 @@ from maplebot.commands.level_exp import (
     calculate_exp_damage,
 )
 from maplebot.commands.star_force import calculate_star_force, calculate_boom_count
+from maplebot.commands.slide_puzzle import generate_slide_puzzle_gif
 from maplebot.utils.config import config, qun_db, find_role_data
 from maplebot.utils.dict_tfidf import get_familiar_value, add_into_dict
 from maplebot.utils.dict_entry import serialize_message, build_message, cleanup_orphan_images, find_entries_with_missing_images
@@ -65,6 +66,7 @@ _HELP_TIPS = [
     "神秘压制",
     "我要开车 BOSS编号", "订阅开车 BOSS编号", "取消订阅 [BOSS编号]",
     "爆炸次数",
+    "滑块",
 ]
 
 
@@ -247,6 +249,20 @@ async def _handle_boom(args=CommandArg()):
     msg = calculate_boom_count(content or "", new_kms=True)
     if msg:
         await _boom_cmd.finish(msg)
+
+
+# ---- 滑块（数字华容道动图） ----
+_slide_puzzle_cmd = on_command("滑块", rule=_valid_group_rule, priority=10, block=True)
+
+
+@_slide_puzzle_cmd.handle()
+async def _handle_slide_puzzle(event: Event):
+    try:
+        b64 = generate_slide_puzzle_gif()
+        await _slide_puzzle_cmd.finish(_make_image_or_text(b64, event))
+    except Exception as e:
+        logger.error(f"[slide_puzzle] 生成失败: {e}")
+        await _slide_puzzle_cmd.finish()
 
 
 # ---- 神秘压制 ----
