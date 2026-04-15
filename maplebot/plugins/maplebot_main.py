@@ -73,6 +73,8 @@ _HELP_TIPS = [
 def _deal_key(s: str) -> str:
     """处理词条 key：中文数字转阿拉伯、转小写"""
     s = s.strip()
+    if s.endswith("代目"):
+        return s
     trans = str.maketrans("零一二三四五六七八九", "0123456789")
     return s.translate(trans).lower()
 
