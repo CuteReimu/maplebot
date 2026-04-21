@@ -9,7 +9,7 @@ ignore = .venv, .git, __pycache__
 ignore-paths = ^\.venv/.*$
 
 # Python 版本（与项目 .venv 一致）
-py-version = 3.13
+py-version = 3.12
 
 [MESSAGES CONTROL]
 # 禁用的检查项（根据项目实际情况调整）
