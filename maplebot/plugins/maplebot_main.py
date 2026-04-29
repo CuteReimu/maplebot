@@ -46,6 +46,9 @@ from maplebot.commands.level_exp import (
 )
 from maplebot.commands.star_force import calculate_star_force, calculate_boom_count
 from maplebot.commands.slide_puzzle import generate_slide_puzzle_gif
+from maplebot.commands.bonus_att import calculate_bonus_att
+from maplebot.commands.bonus_bd import calculate_bonus_bd
+from maplebot.commands.bonus_idf import calculate_bonus_idf
 from maplebot.utils.config import config, qun_db, find_role_data
 from maplebot.utils.dict_tfidf import get_familiar_value, add_into_dict
 from maplebot.utils.dict_entry import serialize_message, build_message, cleanup_orphan_images, find_entries_with_missing_images
@@ -67,6 +70,9 @@ _HELP_TIPS = [
     "我要开车 BOSS编号", "订阅开车 BOSS编号", "取消订阅 [BOSS编号]",
     "爆炸次数",
     "滑块",
+    "攻击收益 当前攻击% 新增攻击%",
+    "BOSS伤害收益 当前伤害% 当前B伤% 新增伤害/B伤%",
+    "无视收益 怪物防御% 当前无视% 新增无视%",
 ]
 
 
@@ -287,6 +293,48 @@ async def _handle_slide_puzzle(event: Event):
     except Exception as e:
         logger.error(f"[slide_puzzle] 生成失败: {e}")
         await _slide_puzzle_cmd.finish()
+
+
+# ---- 攻击收益 ----
+_bonus_att_cmd = on_command("攻击收益", rule=_valid_group_rule, priority=10, block=True)
+
+
+@_bonus_att_cmd.handle()
+async def _handle_bonus_att(event: Event, args=CommandArg()):
+    content = args.extract_plain_text().strip()
+    result = calculate_bonus_att(content)
+    if _is_console(event) and not isinstance(result, str):
+        await _bonus_att_cmd.finish(result.extract_plain_text())
+    else:
+        await _bonus_att_cmd.finish(result)
+
+
+# ---- BOSS伤害收益 ----
+_bonus_bd_cmd = on_command("BOSS伤害收益", aliases={"B伤收益"}, rule=_valid_group_rule, priority=10, block=True)
+
+
+@_bonus_bd_cmd.handle()
+async def _handle_bonus_bd(event: Event, args=CommandArg()):
+    content = args.extract_plain_text().strip()
+    result = calculate_bonus_bd(content)
+    if _is_console(event) and not isinstance(result, str):
+        await _bonus_bd_cmd.finish(result.extract_plain_text())
+    else:
+        await _bonus_bd_cmd.finish(result)
+
+
+# ---- 无视收益 ----
+_bonus_idf_cmd = on_command("无视收益", rule=_valid_group_rule, priority=10, block=True)
+
+
+@_bonus_idf_cmd.handle()
+async def _handle_bonus_idf(event: Event, args=CommandArg()):
+    content = args.extract_plain_text().strip()
+    result = calculate_bonus_idf(content)
+    if _is_console(event) and not isinstance(result, str):
+        await _bonus_idf_cmd.finish(result.extract_plain_text())
+    else:
+        await _bonus_idf_cmd.finish(result)
 
 
 # ---- 神秘压制 ----
