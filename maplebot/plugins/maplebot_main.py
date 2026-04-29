@@ -1,7 +1,5 @@
 """maplebot 主插件 - NoneBot2 命令路由"""
 # pylint: disable=wrong-import-position
-from __future__ import annotations
-
 import os
 import random
 from typing import Any

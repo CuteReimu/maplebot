@@ -3,8 +3,6 @@
 生成一个随机可解的 3×3 数字华容道题目，用 A* 算法求解，
 将求解过程渲染成 GIF 动图，以 base64 字符串返回。
 """
-from __future__ import annotations
-
 import base64
 import heapq
 import io

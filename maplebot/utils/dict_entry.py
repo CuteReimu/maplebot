@@ -1,6 +1,4 @@
 """词条消息的序列化 / 反序列化 + 图片本地缓存管理"""
-from __future__ import annotations
-
 import base64
 import hashlib
 import json
