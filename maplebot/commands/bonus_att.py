@@ -31,11 +31,9 @@ def calculate_bonus_att(content: str) -> Message | str:
     fd_increase = calculate_atk_fd_increase(current_atk_pct, new_atk_pct)
 
     text_result = (
-        "=" * 40 + "\n"
         f"当前攻击力: {current_atk_pct*100:.0f}%\n"
         f"新增攻击力: {new_atk_pct*100:.0f}%\n"
-        f"最终伤害(FD)提升: {fd_increase*100:.2f}%\n"
-        + "=" * 40
+        f"最终伤害(FD)提升: {fd_increase*100:.2f}%"
     )
 
     # ==========================================

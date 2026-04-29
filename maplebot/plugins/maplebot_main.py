@@ -310,7 +310,7 @@ async def _handle_bonus_att(event: Event, args=CommandArg()):
 
 
 # ---- BOSS伤害收益 ----
-_bonus_bd_cmd = on_command("BOSS伤害收益", aliases={"B伤收益"}, rule=_valid_group_rule, priority=10, block=True)
+_bonus_bd_cmd = on_command("BOSS伤害收益", aliases={"B伤收益", "boss伤害收益", "Boss伤害收益", "b伤收益"}, rule=_valid_group_rule, priority=10, block=True)
 
 
 @_bonus_bd_cmd.handle()

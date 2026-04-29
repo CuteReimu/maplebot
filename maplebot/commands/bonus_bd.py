@@ -34,13 +34,11 @@ def calculate_bonus_bd(content: str) -> Message | str:
     fd_increase = calculate_dmg_fd(current_total_pct, new_add_pct)
 
     text_result = (
-        "=" * 40 + "\n"
         f"当前面板伤害%: {current_dmg_pct*100:.2f}%\n"
         f"当前面板B伤%: {current_bd_pct*100:.2f}%\n"
         f"当前[总伤害+B伤]合计: {current_total_pct*100:.2f}%\n"
         f"新增伤害/B伤%词条: {new_add_pct*100:.2f}%\n"
-        f"最终伤害(FD)提升: {fd_increase*100:.2f}%\n"
-        + "=" * 40
+        f"最终伤害(FD)提升: {fd_increase*100:.2f}%"
     )
 
     # ==========================================

@@ -43,12 +43,10 @@ def calculate_bonus_idf(content: str) -> Message | str:
     fd_increase = calculate_fd_increase(monster_df, hero_idf, new_idf)
 
     text_result = (
-        "=" * 40 + "\n"
         f"怪物防御: {monster_df * 100:.0f}%\n"
         f"当前面板无视 (hero_idf): {hero_idf * 100:.2f}%\n"
         f"新增无视词条 (new_idf): {new_idf * 100:.2f}%\n"
-        f"最终伤害(FD)提升: {fd_increase * 100:.2f}%\n"
-        + "=" * 40
+        f"最终伤害(FD)提升: {fd_increase * 100:.2f}%"
     )
 
     # ==========================================
