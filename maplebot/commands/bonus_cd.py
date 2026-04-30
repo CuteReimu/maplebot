@@ -99,5 +99,3 @@ def calculate_bonus_cd(content: str) -> Message | str:
 
     msg += text_result
     return msg
-
-
