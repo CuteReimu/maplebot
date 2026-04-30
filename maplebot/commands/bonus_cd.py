@@ -62,7 +62,7 @@ def calculate_bonus_cd(content: str) -> Message | str:
     fig = plt.figure(figsize=(10, 6))
 
     curr_cd_values = np.linspace(x_start, x_end, 500)
-    b_values = [0.01, 0.05, 0.10]
+    b_values = [0.05, 0.08, 0.10, 0.16]
 
     for b in b_values:
         fd_values = calculate_cd_fd_increase(curr_cd_values, b) * 100
