@@ -47,6 +47,7 @@ from maplebot.commands.slide_puzzle import generate_slide_puzzle_gif
 from maplebot.commands.bonus_att import calculate_bonus_att
 from maplebot.commands.bonus_bd import calculate_bonus_bd
 from maplebot.commands.bonus_idf import calculate_bonus_idf
+from maplebot.commands.bonus_cd import calculate_bonus_cd
 from maplebot.utils.config import config, qun_db, find_role_data
 from maplebot.utils.dict_tfidf import get_familiar_value, add_into_dict
 from maplebot.utils.dict_entry import serialize_message, build_message, cleanup_orphan_images, find_entries_with_missing_images
@@ -71,6 +72,7 @@ _HELP_TIPS = [
     "攻击收益 当前攻击% 新增攻击%",
     "BOSS伤害收益 当前伤害% 当前B伤% 新增伤害/B伤%",
     "无视收益 怪物防御% 当前无视% 新增无视%",
+    "爆伤收益 当前爆伤% 新增爆伤%",
 ]
 
 
@@ -333,6 +335,20 @@ async def _handle_bonus_idf(event: Event, args=CommandArg()):
         await _bonus_idf_cmd.finish(result.extract_plain_text())
     else:
         await _bonus_idf_cmd.finish(result)
+
+
+# ---- 爆伤收益 ----
+_bonus_cd_cmd = on_command("爆伤收益", aliases={"暴伤收益"}, rule=_valid_group_rule, priority=10, block=True)
+
+
+@_bonus_cd_cmd.handle()
+async def _handle_bonus_cd(event: Event, args=CommandArg()):
+    content = args.extract_plain_text().strip()
+    result = calculate_bonus_cd(content)
+    if _is_console(event) and not isinstance(result, str):
+        await _bonus_cd_cmd.finish(result.extract_plain_text())
+    else:
+        await _bonus_cd_cmd.finish(result)
 
 
 # ---- 神秘压制 ----
