@@ -39,7 +39,7 @@ _sac_data = [
     (4_565, 4_751_600_000),
 ]
 
-# 技能、精通、通用、五转 
+# 技能、精通、通用、五转
 # (大核，小核)
 _hexa_data = [
     # 技能核心
@@ -176,8 +176,9 @@ _hexa_data = [
         (178, 5_174),
         (188, 5_518),
         (208, 6_268),
-    ]
+    ],
 ]
+
 
 def get_culmulative_cost(name: str, start: int, end: int) -> tuple[int, int]:
     if name == "arc":
@@ -195,8 +196,7 @@ def get_culmulative_cost(name: str, start: int, end: int) -> tuple[int, int]:
     else:
         raise ValueError(f"Unknown cost type: {name}")
 
-    if ((start < 0 or end < 0) or
-        (start >= len(data) or end >= len(data))):
+    if (start < 0 or end < 0) or (start >= len(data) or end >= len(data)):
         raise ValueError(f"Invalid start or end level: {start}, {end}")
 
     start_costs = data[start]
@@ -204,25 +204,30 @@ def get_culmulative_cost(name: str, start: int, end: int) -> tuple[int, int]:
 
     return (end_costs[0] - start_costs[0], end_costs[1] - start_costs[1])
 
-def calculate_arc_cost(start: int=1, end: int=20) -> str:
+
+def calculate_arc_cost(start: int = 1, end: int = 20) -> str:
     """计算arc从 start 级升级到 end 级需要的岛球和金币"""
-    
+
     symbol, meso = get_culmulative_cost("arc", start - 1, end - 1)
     msg = f"神秘{start}级升级到 {end} 级需要： {symbol}岛球 {format_int64(meso)}金币\n"
     return msg
 
-def calculate_sac_cost(start: int=1, end: int=11) -> str:
+
+def calculate_sac_cost(start: int = 1, end: int = 11) -> str:
     """计算sac从 start 级升级到 end 级需要的岛球和金币"""
-    
+
     symbol, meso = get_culmulative_cost("sac", start - 1, end - 1)
     msg = f"原初{start}级升级到 {end} 级需要：{symbol}岛球 {format_int64(meso)}金币\n"
     return msg
 
-def calculate_hexa_cost(type: str, start: int=0, end: int=30) -> str:
+
+def calculate_hexa_cost(hexa_type: str, start: int = 0, end: int = 30) -> str:
     """计算六转从 start 级升级到 end 级需要的大核和小核"""
-    if type not in ["技能", "精通", "通用", "五转"]:
-        raise ValueError(f"Unknown hexa type: {type}")
-    idx = ["技能", "精通", "通用", "五转"].index(type)
-    erda, fragment = get_culmulative_cost(f"hexa_{['skill', 'mastery', 'common', '5th'][idx]}", start, end)
-    msg = f"{type}核心 {start} 级到 {end}级 需要：{erda} 大核 {fragment} 小核\n"
+    if hexa_type not in ["技能", "精通", "通用", "五转"]:
+        raise ValueError(f"Unknown hexa type: {hexa_type}")
+    idx = ["技能", "精通", "通用", "五转"].index(hexa_type)
+    erda, fragment = get_culmulative_cost(
+        f"hexa_{['skill', 'mastery', 'common', '5th'][idx]}", start, end
+    )
+    msg = f"{hexa_type}核心 {start} 级到 {end}级 需要：{erda} 大核 {fragment} 小核\n"
     return msg

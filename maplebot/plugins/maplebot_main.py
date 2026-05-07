@@ -74,7 +74,7 @@ _HELP_TIPS = [
     "BOSS伤害收益 当前伤害% 当前B伤% 新增伤害/B伤%",
     "无视收益 怪物防御% 当前无视% 新增无视%",
     "爆伤收益 当前爆伤% 新增爆伤%",
-    "神秘/原初 初始等级 目标等级"
+    "神秘/原初 初始等级 目标等级",
     "六转 技能/精通/通用/五转 初始等级 目标等级",
 ]
 
@@ -638,7 +638,7 @@ _arc_calculate_cmd = on_command("神秘", rule=_valid_group_rule, priority=10, b
 
 
 @_arc_calculate_cmd.handle()
-async def _handle_arc_calculate(event: Event, args=CommandArg()):
+async def _handle_arc_calculate(_: Event, args=CommandArg()):
     content = args.extract_plain_text().strip()
     if content:
         try:
@@ -655,7 +655,7 @@ _sac_calculate_cmd = on_command("原初", rule=_valid_group_rule, priority=10, b
 
 
 @_sac_calculate_cmd.handle()
-async def _handle_sac_calculate(event: Event, args=CommandArg()):
+async def _handle_sac_calculate(_: Event, args=CommandArg()):
     content = args.extract_plain_text().strip()
     print(content)
     if content:
@@ -673,19 +673,19 @@ _hexa_calculate_cmd = on_command("六转", rule=_valid_group_rule, priority=10, 
 
 
 @_hexa_calculate_cmd.handle()
-async def _handle_hexa_calculate(event: Event, args=CommandArg()):
+async def _handle_hexa_calculate(_: Event, args=CommandArg()):
     content = args.extract_plain_text().strip()
     if content:
         try:
-            type, start, end = content.split()
+            hexa_type, start, end = content.split()
             start, end = int(start), int(end)
-            result = calculate_hexa_cost(type, start, end)
+            result = calculate_hexa_cost(hexa_type, start, end)
             await _hexa_calculate_cmd.finish(result)
             return
         except (ValueError, IndexError):
             pass
     await _hexa_calculate_cmd.finish("命令格式：\n六转 技能/精通/通用/五转 初始等级 目标等级， 等级0~30")
-        
+
 # ====================== 词条模糊匹配（最低优先级） ======================
 _dict_fallback = on_message(priority=20, block=False)
 
