@@ -48,6 +48,7 @@ from maplebot.commands.bonus_att import calculate_bonus_att
 from maplebot.commands.bonus_bd import calculate_bonus_bd
 from maplebot.commands.bonus_idf import calculate_bonus_idf
 from maplebot.commands.bonus_cd import calculate_bonus_cd
+from maplebot.commands.calculator import calculate_arc_cost, calculate_sac_cost, calculate_hexa_cost
 from maplebot.utils.config import config, qun_db, find_role_data
 from maplebot.utils.dict_tfidf import get_familiar_value, add_into_dict
 from maplebot.utils.dict_entry import serialize_message, build_message, cleanup_orphan_images, find_entries_with_missing_images
@@ -73,6 +74,8 @@ _HELP_TIPS = [
     "BOSS伤害收益 当前伤害% 当前B伤% 新增伤害/B伤%",
     "无视收益 怪物防御% 当前无视% 新增无视%",
     "爆伤收益 当前爆伤% 新增爆伤%",
+    "神秘/原初 初始等级 目标等级"
+    "六转 技能/精通/通用/五转 初始等级 目标等级",
 ]
 
 
@@ -630,6 +633,59 @@ async def _handle_missing_img(bot: Bot, event: Event):
     await _missing_img_cmd.finish(header + "\n".join(lines) + suffix)
 
 
+# ---- 计算神秘/原初/六转升级成本   ----
+_arc_calculate_cmd = on_command("神秘", rule=_valid_group_rule, priority=10, block=True)
+
+
+@_arc_calculate_cmd.handle()
+async def _handle_arc_calculate(event: Event, args=CommandArg()):
+    content = args.extract_plain_text().strip()
+    if content:
+        try:
+            start, end = content.split()
+            start, end = int(start), int(end)
+            result = calculate_arc_cost(start, end)
+            await _arc_calculate_cmd.finish(result)
+            return
+        except (ValueError, IndexError):
+            pass
+    await _arc_calculate_cmd.finish("命令格式：\n神秘 初始等级 目标等级， 等级1~20")
+
+_sac_calculate_cmd = on_command("原初", rule=_valid_group_rule, priority=10, block=True)
+
+
+@_sac_calculate_cmd.handle()
+async def _handle_sac_calculate(event: Event, args=CommandArg()):
+    content = args.extract_plain_text().strip()
+    print(content)
+    if content:
+        try:
+            start, end = content.split()
+            start, end = int(start), int(end)
+            result = calculate_sac_cost(start, end)
+            await _sac_calculate_cmd.finish(result)
+            return
+        except (ValueError, IndexError):
+            pass
+    await _sac_calculate_cmd.finish("命令格式：\n原初 初始等级 目标等级， 等级1~11")
+
+_hexa_calculate_cmd = on_command("六转", rule=_valid_group_rule, priority=10, block=True)
+
+
+@_hexa_calculate_cmd.handle()
+async def _handle_hexa_calculate(event: Event, args=CommandArg()):
+    content = args.extract_plain_text().strip()
+    if content:
+        try:
+            type, start, end = content.split()
+            start, end = int(start), int(end)
+            result = calculate_hexa_cost(type, start, end)
+            await _hexa_calculate_cmd.finish(result)
+            return
+        except (ValueError, IndexError):
+            pass
+    await _hexa_calculate_cmd.finish("命令格式：\n六转 技能/精通/通用/五转 初始等级 目标等级， 等级0~30")
+        
 # ====================== 词条模糊匹配（最低优先级） ======================
 _dict_fallback = on_message(priority=20, block=False)
 
