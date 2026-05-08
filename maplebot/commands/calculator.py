@@ -227,11 +227,11 @@ def calculate_sac_cost(start: int = 1, end: int = 11) -> str:
 
 def calculate_hexa_cost(hexa_type: str, start: int = 0, end: int = 30) -> str:
     """计算六转从 start 级升级到 end 级需要的大核和小核"""
-    if hexa_type not in ["技能", "精通", "通用", "五转"]:
+    if hexa_type not in ["技能", "精通", "通用", "五转", "强化"]:
         raise ValueError(f"Unknown hexa type: {hexa_type}")
-    idx = ["技能", "精通", "通用", "五转"].index(hexa_type)
+    idx = ["技能", "精通", "通用", "五转", "强化"].index(hexa_type)
     erda, fragment = get_culmulative_cost(
-        f"hexa_{['skill', 'mastery', 'common', '5th'][idx]}", start, end
+        f"hexa_{['skill', 'mastery', 'common', '5th'][min(idx, 3)]}", start, end
     )
     if hexa_type == "技能":
         msg = f"{hexa_type}核心 {start} 级到 {end}级 需要：{erda} 大核 和 {fragment} 小核, 不含解锁的5大核和100小核"
