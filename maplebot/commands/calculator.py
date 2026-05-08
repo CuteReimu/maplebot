@@ -269,7 +269,7 @@ def calculate_hexa_cost(hexa_type: str, start: int = 0, end: int = 30) -> str:
     erda, fragment = get_culmulative_cost(
         f"hexa_{['skill', 'mastery', 'boost', 'common', 'common_5th'][idx]}", start, end
     )
-    if hexa_type == "技能":
+    if hexa_type == "技能" and start == 0:
         msg = f"{hexa_type}核心 {start} 级到 {end}级 需要：{erda} 大核 和 {fragment} 小核, 不含解锁的5大核和100小核"
     else:
         msg = f"{hexa_type}核心 {start} 级到 {end}级 需要：{erda} 大核 {fragment} 小核"
