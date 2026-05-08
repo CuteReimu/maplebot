@@ -3,6 +3,7 @@ from maplebot.utils.format_utils import format_int64
 # (岛球， meso)
 _arc_data = [
     (0, 0),
+    (0, 0),
     (12, 970_000),
     (27, 2_200_000),
     (47, 3_860_000),
@@ -26,6 +27,7 @@ _arc_data = [
 
 # (岛球， meso)
 _sac_data = [
+    (0, 0),
     (0, 0),
     (29, 41_700_000),
     (105, 146_500_000),
@@ -208,16 +210,18 @@ def get_culmulative_cost(name: str, start: int, end: int) -> tuple[int, int]:
 def calculate_arc_cost(start: int = 1, end: int = 20) -> str:
     """计算arc从 start 级升级到 end 级需要的岛球和金币"""
 
-    symbol, meso = get_culmulative_cost("arc", start - 1, end - 1)
-    msg = f"神秘{start}级升级到 {end} 级需要： {symbol}岛球 {format_int64(meso)}金币"
+    symbol, meso = get_culmulative_cost("arc", start, end)
+    _ = format_int64(meso)
+    msg = f"神秘{start}级升级到 {end} 级需要： {symbol}岛球"
     return msg
 
 
 def calculate_sac_cost(start: int = 1, end: int = 11) -> str:
     """计算sac从 start 级升级到 end 级需要的岛球和金币"""
 
-    symbol, meso = get_culmulative_cost("sac", start - 1, end - 1)
-    msg = f"原初{start}级升级到 {end} 级需要：{symbol}岛球 {format_int64(meso)}金币"
+    symbol, meso = get_culmulative_cost("sac", start, end)
+    _ = format_int64(meso)
+    msg = f"原初{start}级升级到 {end} 级需要：{symbol}岛球"
     return msg
 
 
@@ -229,5 +233,8 @@ def calculate_hexa_cost(hexa_type: str, start: int = 0, end: int = 30) -> str:
     erda, fragment = get_culmulative_cost(
         f"hexa_{['skill', 'mastery', 'common', '5th'][idx]}", start, end
     )
-    msg = f"{hexa_type}核心 {start} 级到 {end}级 需要：{erda} 大核 {fragment} 小核"
+    if hexa_type == "技能":
+        msg = f"{hexa_type}核心 {start} 级到 {end}级 需要：{erda} 大核 和 {fragment} 小核, 不含解锁的5大核和100小核"
+    else:
+        msg = f"{hexa_type}核心 {start} 级到 {end}级 需要：{erda} 大核 {fragment} 小核"
     return msg
