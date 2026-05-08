@@ -657,7 +657,6 @@ _sac_calculate_cmd = on_command("原初", rule=_valid_group_rule, priority=10, b
 @_sac_calculate_cmd.handle()
 async def _handle_sac_calculate(_: Event, args=CommandArg()):
     content = args.extract_plain_text().strip()
-    print(content)
     if content:
         try:
             start, end = content.split()
