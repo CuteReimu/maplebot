@@ -112,7 +112,7 @@ _hexa_data = [
         (73, 2_002),
         (83, 2_252),
     ],
-    # 通用核心
+    # 强化核心
     [
         (0, 0),
         (4, 75),
@@ -146,6 +146,7 @@ _hexa_data = [
         (108, 3_008),
         (123, 3_383),
     ],
+    # 通用核心
     [
         (0, 0),
         (7, 125),
@@ -179,6 +180,39 @@ _hexa_data = [
         (188, 5_518),
         (208, 6_268),
     ],
+    # 通用五转
+    [
+        (4, 90),
+        (5, 115),
+        (6, 145),
+        (7, 180),
+        (9, 220),
+        (11, 265),
+        (13, 315),
+        (16, 370),
+        (19, 430),
+        (28, 610),
+        (31, 683),
+        (34, 764),
+        (37, 854),
+        (40, 952),
+        (44, 1_059),
+        (48, 1_174),
+        (52, 1_298),
+        (56, 1_430),
+        (60, 1_571),
+        (74, 1_886),
+        (78, 2_037),
+        (83, 2_197),
+        (88, 2_367),
+        (93, 2_546),
+        (98, 2_735),
+        (103, 2_933),
+        (108, 3_141),
+        (113, 3_358),
+        (119, 3_585),
+        (137, 4_035),
+    ]
 ]
 
 
@@ -191,10 +225,12 @@ def get_culmulative_cost(name: str, start: int, end: int) -> tuple[int, int]:
         data = _hexa_data[0]
     elif name == "hexa_mastery":
         data = _hexa_data[1]
-    elif name == "hexa_common":
+    elif name == "hexa_boost":
         data = _hexa_data[2]
-    elif name == "hexa_5th":
+    elif name == "hexa_common":
         data = _hexa_data[3]
+    elif name == "hexa_common_5th":
+        data = _hexa_data[4]
     else:
         raise ValueError(f"Unknown cost type: {name}")
 
@@ -227,11 +263,11 @@ def calculate_sac_cost(start: int = 1, end: int = 11) -> str:
 
 def calculate_hexa_cost(hexa_type: str, start: int = 0, end: int = 30) -> str:
     """计算六转从 start 级升级到 end 级需要的大核和小核"""
-    if hexa_type not in ["技能", "精通", "通用", "五转", "强化"]:
+    if hexa_type not in ["技能", "精通", "通用五转", "强化", "通用"]:
         raise ValueError(f"Unknown hexa type: {hexa_type}")
-    idx = ["技能", "精通", "通用", "五转", "强化"].index(hexa_type)
+    idx = ["技能", "精通", "强化", "通用", "通用五转"].index(hexa_type)
     erda, fragment = get_culmulative_cost(
-        f"hexa_{['skill', 'mastery', 'common', '5th'][min(idx, 3)]}", start, end
+        f"hexa_{['skill', 'mastery', 'boost', 'common', 'common_5th'][idx]}", start, end
     )
     if hexa_type == "技能":
         msg = f"{hexa_type}核心 {start} 级到 {end}级 需要：{erda} 大核 和 {fragment} 小核, 不含解锁的5大核和100小核"
