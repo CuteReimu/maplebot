@@ -171,7 +171,7 @@ async def _handle_dict_callback(event: Event):
 # ====================== 命令处理器（priority=10） ======================
 
 # ---- 查看帮助 ----
-_help_cmd = on_command("查看帮助", rule=_valid_group_rule, priority=10, block=True)
+_help_cmd = on_command("查看帮助", rule=_valid_group_rule, force_whitespace=True, priority=10, block=True)
 
 
 @_help_cmd.handle()
@@ -206,7 +206,7 @@ async def _handle_at_bot():
 
 
 # ---- ping ----
-_ping_cmd = on_command("ping", rule=_valid_group_rule, priority=10, block=True)
+_ping_cmd = on_command("ping", rule=_valid_group_rule, force_whitespace=True, priority=10, block=True)
 
 
 @_ping_cmd.handle()
@@ -217,7 +217,7 @@ async def _handle_ping(args=CommandArg()):
 
 
 # ---- roll ----
-_roll_cmd = on_command("roll", rule=_valid_group_rule, priority=10, block=True)
+_roll_cmd = on_command("roll", rule=_valid_group_rule, force_whitespace=True, priority=10, block=True)
 
 
 @_roll_cmd.handle()
@@ -235,7 +235,7 @@ async def _handle_roll(args=CommandArg()):
 
 
 # ---- 等级压制 ----
-_exp_damage_cmd = on_command("等级压制", rule=_valid_group_rule, priority=10, block=True)
+_exp_damage_cmd = on_command("等级压制", rule=_valid_group_rule, force_whitespace=True, priority=10, block=True)
 
 
 @_exp_damage_cmd.handle()
@@ -250,7 +250,7 @@ async def _handle_exp_damage(args=CommandArg()):
 
 
 # ---- 升级经验 ----
-_level_exp_cmd = on_command("升级经验", rule=_valid_group_rule, priority=10, block=True)
+_level_exp_cmd = on_command("升级经验", rule=_valid_group_rule, force_whitespace=True, priority=10, block=True)
 
 
 @_level_exp_cmd.handle()
@@ -273,7 +273,7 @@ async def _handle_level_exp(event: Event, args=CommandArg()):
 
 
 # ---- 爆炸次数 ----
-_boom_cmd = on_command("爆炸次数", rule=_valid_group_rule, priority=10, block=True)
+_boom_cmd = on_command("爆炸次数", rule=_valid_group_rule, force_whitespace=True, priority=10, block=True)
 
 
 @_boom_cmd.handle()
@@ -285,7 +285,7 @@ async def _handle_boom(args=CommandArg()):
 
 
 # ---- 滑块（数字华容道动图） ----
-_slide_puzzle_cmd = on_command("滑块", rule=_valid_group_rule, priority=10, block=True)
+_slide_puzzle_cmd = on_command("滑块", rule=_valid_group_rule, force_whitespace=True, priority=10, block=True)
 
 
 @_slide_puzzle_cmd.handle()
@@ -299,7 +299,7 @@ async def _handle_slide_puzzle(event: Event):
 
 
 # ---- 攻击收益 ----
-_bonus_att_cmd = on_command("攻击收益", rule=_valid_group_rule, priority=10, block=True)
+_bonus_att_cmd = on_command("攻击收益", rule=_valid_group_rule, force_whitespace=True, priority=10, block=True)
 
 
 @_bonus_att_cmd.handle()
@@ -313,7 +313,7 @@ async def _handle_bonus_att(event: Event, args=CommandArg()):
 
 
 # ---- BOSS伤害收益 ----
-_bonus_bd_cmd = on_command("BOSS伤害收益", aliases={"B伤收益", "boss伤害收益", "Boss伤害收益", "b伤收益"}, rule=_valid_group_rule, priority=10, block=True)
+_bonus_bd_cmd = on_command("BOSS伤害收益", aliases={"B伤收益", "boss伤害收益", "Boss伤害收益", "b伤收益"}, rule=_valid_group_rule, force_whitespace=True, priority=10, block=True)
 
 
 @_bonus_bd_cmd.handle()
@@ -327,7 +327,7 @@ async def _handle_bonus_bd(event: Event, args=CommandArg()):
 
 
 # ---- 无视收益 ----
-_bonus_idf_cmd = on_command("无视收益", rule=_valid_group_rule, priority=10, block=True)
+_bonus_idf_cmd = on_command("无视收益", rule=_valid_group_rule, force_whitespace=True, priority=10, block=True)
 
 
 @_bonus_idf_cmd.handle()
@@ -341,7 +341,7 @@ async def _handle_bonus_idf(event: Event, args=CommandArg()):
 
 
 # ---- 爆伤收益 ----
-_bonus_cd_cmd = on_command("爆伤收益", aliases={"暴伤收益"}, rule=_valid_group_rule, priority=10, block=True)
+_bonus_cd_cmd = on_command("爆伤收益", aliases={"暴伤收益"}, rule=_valid_group_rule, force_whitespace=True, priority=10, block=True)
 
 
 @_bonus_cd_cmd.handle()
@@ -355,7 +355,7 @@ async def _handle_bonus_cd(event: Event, args=CommandArg()):
 
 
 # ---- 神秘压制 ----
-_arc_cmd = on_command("神秘压制", rule=_valid_group_rule, priority=10, block=True)
+_arc_cmd = on_command("神秘压制", rule=_valid_group_rule, force_whitespace=True, priority=10, block=True)
 
 
 @_arc_cmd.handle()
@@ -372,6 +372,7 @@ _star_force_cmd = on_command(
     "模拟升星",
     aliases={"模拟上星", "升星期望", "上星期望", "模拟升星旧", "模拟上星旧", "升星期望旧", "上星期望旧"},
     rule=_valid_group_rule,
+    force_whitespace=True,
     priority=10,
     block=True,
 )
@@ -390,7 +391,7 @@ async def _handle_star_force(cmd: tuple[str, ...] = Command(), args=CommandArg()
 
 
 # ---- 洗魔方 ----
-_cube_cmd = on_command("洗魔方", rule=_valid_group_rule, priority=10, block=True)
+_cube_cmd = on_command("洗魔方", rule=_valid_group_rule, force_whitespace=True, priority=10, block=True)
 
 
 @_cube_cmd.handle()
@@ -401,7 +402,7 @@ async def _handle_cube(args=CommandArg()):
 
 
 # ---- 查询我 ----
-_query_me_cmd = on_command("查询我", rule=_valid_group_rule, priority=10, block=True)
+_query_me_cmd = on_command("查询我", rule=_valid_group_rule, force_whitespace=True, priority=10, block=True)
 
 
 @_query_me_cmd.handle()
@@ -422,7 +423,7 @@ async def _handle_query_me(event: Event, args=CommandArg()):
 
 
 # ---- 查询绑定 QQ号 ----
-_query_bind_cmd = on_command("查询绑定", rule=_valid_group_rule, priority=10, block=True)
+_query_bind_cmd = on_command("查询绑定", rule=_valid_group_rule, force_whitespace=True, priority=10, block=True)
 
 
 @_query_bind_cmd.handle()
@@ -443,7 +444,7 @@ async def _handle_query_bind(args=CommandArg()):
 
 # ---- 查询词条 / 搜索词条 ----
 _search_dict_cmd = on_command(
-    "查询词条", aliases={"搜索词条"}, rule=_valid_group_rule, priority=10, block=True,
+    "查询词条", aliases={"搜索词条"}, rule=_valid_group_rule, force_whitespace=True, priority=10, block=True,
 )
 
 
@@ -456,6 +457,7 @@ async def _handle_search_dict(args=CommandArg()):
 
 
 # ---- 查询 游戏名 ----
+# force_whitespace 不能用于此命令：需要同时支持 "查询 @某人"（有空格）和 "查询@某人"（无空格，at段紧跟命令）
 _query_cmd = on_command("查询", rule=_valid_group_rule, priority=10, block=True)
 
 
@@ -488,7 +490,7 @@ async def _handle_query(event: Event, args=CommandArg()):
 
 
 # ---- 绑定 ----
-_bind_cmd = on_command("绑定", rule=_valid_group_rule, priority=10, block=True)
+_bind_cmd = on_command("绑定", rule=_valid_group_rule, force_whitespace=True, priority=10, block=True)
 
 
 @_bind_cmd.handle()
@@ -508,7 +510,7 @@ async def _handle_bind(event: Event, args=CommandArg()):
 
 
 # ---- 解绑 ----
-_unbind_cmd = on_command("解绑", rule=_valid_group_rule, priority=10, block=True)
+_unbind_cmd = on_command("解绑", rule=_valid_group_rule, force_whitespace=True, priority=10, block=True)
 
 
 @_unbind_cmd.handle()
@@ -528,7 +530,7 @@ async def _handle_unbind(event: Event, args=CommandArg()):
 
 
 # ---- 我要开车 ----
-_kaiche_cmd = on_command("我要开车", rule=_valid_group_rule, priority=10, block=True)
+_kaiche_cmd = on_command("我要开车", rule=_valid_group_rule, force_whitespace=True, priority=10, block=True)
 
 
 @_kaiche_cmd.handle()
@@ -543,7 +545,7 @@ async def _handle_kaiche(bot: Bot, event: Event, args=CommandArg()):
 
 
 # ---- 订阅开车 ----
-_subscribe_cmd = on_command("订阅开车", rule=_valid_group_rule, priority=10, block=True)
+_subscribe_cmd = on_command("订阅开车", rule=_valid_group_rule, force_whitespace=True, priority=10, block=True)
 
 
 @_subscribe_cmd.handle()
@@ -556,7 +558,7 @@ async def _handle_subscribe(event: Event, args=CommandArg()):
 
 
 # ---- 取消订阅 ----
-_unsubscribe_cmd = on_command("取消订阅", rule=_valid_group_rule, priority=10, block=True)
+_unsubscribe_cmd = on_command("取消订阅", rule=_valid_group_rule, force_whitespace=True, priority=10, block=True)
 
 
 @_unsubscribe_cmd.handle()
@@ -569,7 +571,7 @@ async def _handle_unsubscribe(event: Event, args=CommandArg()):
 
 
 # ---- 添加词条（管理员） ----
-_add_dict_cmd = on_command("添加词条", rule=_valid_group_rule, priority=10, block=True)
+_add_dict_cmd = on_command("添加词条", rule=_valid_group_rule, force_whitespace=True, priority=10, block=True)
 
 
 @_add_dict_cmd.handle()
@@ -584,7 +586,7 @@ async def _handle_add_dict(bot: Bot, event: Event, args=CommandArg()):
 
 
 # ---- 修改词条（管理员） ----
-_modify_dict_cmd = on_command("修改词条", rule=_valid_group_rule, priority=10, block=True)
+_modify_dict_cmd = on_command("修改词条", rule=_valid_group_rule, force_whitespace=True, priority=10, block=True)
 
 
 @_modify_dict_cmd.handle()
@@ -599,7 +601,7 @@ async def _handle_modify_dict(bot: Bot, event: Event, args=CommandArg()):
 
 
 # ---- 删除词条（管理员） ----
-_delete_dict_cmd = on_command("删除词条", rule=_valid_group_rule, priority=10, block=True)
+_delete_dict_cmd = on_command("删除词条", rule=_valid_group_rule, force_whitespace=True, priority=10, block=True)
 
 
 @_delete_dict_cmd.handle()
@@ -613,7 +615,7 @@ async def _handle_delete_dict(bot: Bot, event: Event, args=CommandArg()):
 
 
 # ---- 列出过期图片（管理员）：找出本地图片文件已丢失的词条 ----
-_missing_img_cmd = on_command("列出过期图片", rule=_valid_group_rule, priority=10, block=True)
+_missing_img_cmd = on_command("列出过期图片", rule=_valid_group_rule, force_whitespace=True, priority=10, block=True)
 
 
 @_missing_img_cmd.handle()
@@ -634,7 +636,7 @@ async def _handle_missing_img(bot: Bot, event: Event):
 
 
 # ---- 计算神秘/原初/六转升级成本   ----
-_arc_calculate_cmd = on_command("神秘", rule=_valid_group_rule, priority=10, block=True)
+_arc_calculate_cmd = on_command("神秘", rule=_valid_group_rule, force_whitespace=True, priority=10, block=True)
 
 
 @_arc_calculate_cmd.handle()
@@ -651,7 +653,7 @@ async def _handle_arc_calculate(_: Event, args=CommandArg()):
             pass
     await _arc_calculate_cmd.finish("命令格式：\n神秘 初始等级 目标等级， 等级1~20")
 
-_sac_calculate_cmd = on_command("原初", rule=_valid_group_rule, priority=10, block=True)
+_sac_calculate_cmd = on_command("原初", rule=_valid_group_rule, force_whitespace=True, priority=10, block=True)
 
 
 @_sac_calculate_cmd.handle()
@@ -668,7 +670,7 @@ async def _handle_sac_calculate(_: Event, args=CommandArg()):
             pass
     await _sac_calculate_cmd.finish("命令格式：\n原初 初始等级 目标等级， 等级1~11")
 
-_hexa_calculate_cmd = on_command("六转", rule=_valid_group_rule, priority=10, block=True)
+_hexa_calculate_cmd = on_command("六转", rule=_valid_group_rule, force_whitespace=True, priority=10, block=True)
 
 
 @_hexa_calculate_cmd.handle()
