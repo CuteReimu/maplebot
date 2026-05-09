@@ -8,6 +8,7 @@
 *.png
 *.ttf
 *.gif
+*.ipynb
 venv/
 .venv/
 __pycache__/
