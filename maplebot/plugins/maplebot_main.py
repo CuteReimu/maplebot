@@ -683,9 +683,9 @@ async def _handle_hexa_calculate(_: Event, args=CommandArg()):
             result = calculate_hexa_cost(hexa_type, start, end)
             await _hexa_calculate_cmd.finish(result)
             return
-        except (ValueError, IndexError):
+        except (ValueError, IndexError) as _:
             pass
-    await _hexa_calculate_cmd.finish("命令格式：\n六转 技能/精通/通用/五转 初始等级 目标等级， 等级0~30")
+    await _hexa_calculate_cmd.finish("命令格式：\n六转 技能/精通/强化/通用/通用五转 初始等级 目标等级， 等级0~30")
 
 # ====================== 词条模糊匹配（最低优先级） ======================
 _dict_fallback = on_message(priority=20, block=False)
