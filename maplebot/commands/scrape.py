@@ -34,13 +34,17 @@ def assert_player_onrank(name):
     return count > 0
 
 
-async def try_request(url, name, retries=3, wait=10):
+async def try_request(url, name, retries=3, wait=10, headers=None, cookies=None):
     data = None
+    if name is not None:
+        formatted_url = url.format(name)
+    else:
+        formatted_url = url
     for retry in range(retries):
         response = None
         try:
             async with httpx.AsyncClient(timeout=20) as client:
-                response = await client.get(url.format(name))
+                response = await client.get(formatted_url, headers=headers, cookies=cookies)
             data = response.json()
             logger.info(f"Requested for {name} successfully")
             break

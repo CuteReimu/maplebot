@@ -14,6 +14,7 @@ from nonebot.log import logger
 from maplebot.commands.file_utils import _file_lock
 from maplebot.utils.class_name import translate_class_name
 from maplebot.utils.config import level_exp_data
+from maplebot.commands.find_role_online import get_online_characters, process_character_data
 
 # ---------- 文件路径 ----------
 _PLAYER_DATA_DIR = "player_data"
@@ -54,6 +55,8 @@ async def _save_player_names(names: dict[str, str]):
 # ---------- 经验处理工具 ----------
 def _get_processed_y(exps, lvls, lvl_single, lvl_culm):
     exp_diffs = [0]
+    print("lvl_single:", lvl_single)
+    print("exps:", exps)
     lvl_decimals = [exps[0] / lvl_single.get(str(lvls[0]), 1) + lvls[0]]
     for i in range(1, len(exps)):
         exp_prev = lvl_culm.get(str(lvls[i - 1]), 0) + exps[i - 1]
@@ -201,11 +204,32 @@ async def _try_local(name: str) -> Message | None:
     if not player_dict:
         return None
 
+    return generate_message_from_player_dict(player_dict)
+
+
+# ---------- 从在线接口获取数据并生成回复 ----------
+async def _try_online(name: str, server: str = 'NA') -> Message | None:
+    name = _try_encode_gb2312(name)
+    print("Trying online for name:", name)
+    data = await get_online_characters(name, server)
+    print("Received online data")
+    if not data:
+        return None
+
+    player_dict = await process_character_data(data)
+    print("Processed character data:", player_dict)
+    if not player_dict:
+        return None
+
+    return generate_message_from_player_dict(player_dict)
+
+
+def generate_message_from_player_dict(player_dict):
     lvl_single: dict[str, int] = {}
     lvl_culm: dict[str, int] = {}
     acc = 0
     for i in range(1, 300):
-        v = int(level_exp_data.get(f"data.{i}", 0) or 0)
+        v = int(level_exp_data.get(f"data.{i}", 1) or 0)
         lvl_single[str(i)] = v
         lvl_culm[str(i)] = acc
         acc += v
@@ -262,5 +286,9 @@ async def find_role(name: str) -> Message | str:
     local = await _try_local(name)
     if local:
         return local
+
+    online = await _try_online(name)
+    if online:
+        return online
 
     return "请求失败"
