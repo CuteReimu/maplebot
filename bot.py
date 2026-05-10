@@ -10,7 +10,6 @@ from nonebot.adapters.onebot.v11 import Adapter as OneBotV11Adapter
 nonebot.init()
 
 driver = nonebot.get_driver()
-driver.register_adapter(OneBotV11Adapter)
 
 _IS_PROD = os.getenv("ENVIRONMENT", "dev").lower() == "prod"
 
@@ -20,10 +19,11 @@ if not _IS_PROD:
         from nonebot.adapters.console import Adapter as ConsoleAdapter
         driver.register_adapter(ConsoleAdapter)  # type: ignore[arg-type]
     except ImportError:
-        pass
+        driver.register_adapter(OneBotV11Adapter)
 
 # prod 环境：将所有日志（loguru + stdlib logging）输出到按天分割的文件
 if _IS_PROD:
+    driver.register_adapter(OneBotV11Adapter)
     _LOG_DIR = os.path.join(os.path.dirname(__file__), "logs")
     os.makedirs(_LOG_DIR, exist_ok=True)
 
