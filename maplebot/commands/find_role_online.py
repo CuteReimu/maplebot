@@ -5,7 +5,6 @@ import httpx
 from Crypto.Cipher import AES
 from Crypto.Util.Padding import unpad
 from nonebot.log import logger
-from nonebot.adapters.onebot.v11 import Message
 
 from maplebot.commands.scrape import try_request, BUFFER_SIZE
 
