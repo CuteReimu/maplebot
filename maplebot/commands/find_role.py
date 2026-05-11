@@ -55,8 +55,7 @@ async def _save_player_names(names: dict[str, str]):
 # ---------- 经验处理工具 ----------
 def _get_processed_y(exps, lvls, lvl_single, lvl_culm):
     exp_diffs = [0]
-    print("lvl_single:", lvl_single)
-    print("exps:", exps)
+
     lvl_decimals = [exps[0] / lvl_single.get(str(lvls[0]), 1) + lvls[0]]
     for i in range(1, len(exps)):
         exp_prev = lvl_culm.get(str(lvls[i - 1]), 0) + exps[i - 1]
@@ -210,14 +209,11 @@ async def _try_local(name: str) -> Message | None:
 # ---------- 从在线接口获取数据并生成回复 ----------
 async def _try_online(name: str, server: str = 'NA') -> Message | None:
     name = _try_encode_gb2312(name)
-    print("Trying online for name:", name)
     data = await get_online_characters(name, server)
-    print("Received online data")
     if not data:
         return None, 0
 
     player_dict = await process_character_data(data)
-    print("Processed character data:", player_dict)
     if not player_dict:
         return None, 0
 

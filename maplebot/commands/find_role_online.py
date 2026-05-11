@@ -78,8 +78,9 @@ async def process_character_data(data: dict) -> dict | None:
                     "legionLevel": int(legion),
                 }
             )
-    except (KeyError, ValueError, json.JSONDecodeError) as _:
+    except (KeyError, ValueError, json.JSONDecodeError) as e:
         player_dict = None
+        logger.error(f"Error processing character {name} online, exception: {e}")
 
     return player_dict
 
