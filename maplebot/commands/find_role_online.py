@@ -47,14 +47,14 @@ async def get_online_characters(character_name: str, sever: str = "NA") -> dict 
 
 # ---------- 整理数据 ----------
 async def process_character_data(data: dict) -> dict | None:
-    if data is None or 'encrypted' not in data:
-        return None
-    json_data = decrypt_data(data['encrypted'])
-    if not json_data or 'data' not in json_data:
-        return None
-
-    player_dict = None
     try:
+        if data is None or 'encrypted' not in data:
+            return None
+        json_data = decrypt_data(data['encrypted'])
+        if not json_data or 'data' not in json_data:
+            return None
+
+        player_dict = None
         character = json_data['data']['character']
         name = character['name']
         job = character['job']
