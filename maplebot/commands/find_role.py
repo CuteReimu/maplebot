@@ -14,7 +14,7 @@ from nonebot.log import logger
 from maplebot.commands.file_utils import _file_lock
 from maplebot.utils.class_name import translate_class_name
 from maplebot.utils.config import level_exp_data
-from maplebot.commands.find_role_online import get_online_characters, process_character_data
+from maplebot.commands.find_role_online import get_online_characters, process_character_data, covert_total_exp_to_level_exp
 
 # ---------- 文件路径 ----------
 _PLAYER_DATA_DIR = "player_data"
@@ -202,7 +202,7 @@ async def _try_local(name: str) -> Message | None:
     """从本地数据生成回复"""
     player_dict = await _process_player_data(name)
     if not player_dict:
-        return None
+        return None, 0
 
     return generate_message_from_player_dict(player_dict)
 
@@ -214,17 +214,17 @@ async def _try_online(name: str, server: str = 'NA') -> Message | None:
     data = await get_online_characters(name, server)
     print("Received online data")
     if not data:
-        return None
+        return None, 0
 
     player_dict = await process_character_data(data)
     print("Processed character data:", player_dict)
     if not player_dict:
-        return None
+        return None, 0
 
-    return generate_message_from_player_dict(player_dict)
+    return generate_message_from_player_dict(player_dict, convert_exp=True)
 
 
-def generate_message_from_player_dict(player_dict):
+def generate_message_from_player_dict(player_dict: dict, convert_exp: bool = False) -> Message:
     lvl_single: dict[str, int] = {}
     lvl_culm: dict[str, int] = {}
     acc = 0
@@ -233,6 +233,9 @@ def generate_message_from_player_dict(player_dict):
         lvl_single[str(i)] = v
         lvl_culm[str(i)] = acc
         acc += v
+
+    if convert_exp:
+        covert_total_exp_to_level_exp(player_dict, lvl_culm)
 
     last = player_dict["data"][-1]
     pname = last["name"]
@@ -255,6 +258,7 @@ def generate_message_from_player_dict(player_dict):
     days_needed, exp_pct = _days_to_level(dated_exps, exp, level, lvl_single)
 
     has_change = any(v is not None and v != 0 for v in dated_exps)
+    data_days = len([v for v in dated_exps if v is not None])
 
     msg = Message()
     if avatar:
@@ -277,18 +281,21 @@ def generate_message_from_player_dict(player_dict):
         text += "近日无经验变化"
         msg += text
 
-    return msg
+    return msg, data_days
 
 
 async def find_role(name: str) -> Message | str:
-    """查询角色信息，优先本地数据，失败则请求 maplestory.gg API"""
+    """查询角色信息，优先本地数据，失败则请求 API"""
     # 1. 尝试本地数据
-    local = await _try_local(name)
-    if local:
+    local, days = await _try_local(name)
+    if local and days > 7:  # 本地数据存在且够多, 优先使用本地数据
         return local
 
-    online = await _try_online(name)
-    if online:
+    online, _ = await _try_online(name)
+    if online:              # 在线数据成功，使用在线数据
         return online
+
+    if local:               # 在线数据失败但本地数据存在，使用本地数据
+        return local
 
     return "请求失败"

@@ -102,3 +102,11 @@ async def get_character_img(img_url: str, player_name: str = None) -> str:
         img64 = ""
         logger.warning(f"Error fetching image for {player_name}: {e}")
     return img64
+
+
+def covert_total_exp_to_level_exp(player_dict, lvl_culm):
+    for entry in player_dict['data']:
+        total_exp = entry['exp']
+        level = entry['level']
+        exp_for_current_level = total_exp - lvl_culm.get(str(level), 0)
+        entry['exp'] = exp_for_current_level
