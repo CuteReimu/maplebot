@@ -1,5 +1,4 @@
 """词条消息的序列化 / 反序列化 + 图片本地缓存管理"""
-import base64
 import hashlib
 import json
 import os
@@ -8,7 +7,7 @@ import time
 from typing import Any
 
 import httpx
-from nonebot.adapters.onebot.v11 import Message as V11Message, MessageSegment as V11Seg
+from nonebot.adapters.qq.message import Message, MessageSegment
 from nonebot.log import logger
 
 # ---- 图片缓存目录（仅用于持久化原始文件，避免重复下载） ----
@@ -25,7 +24,7 @@ _STAGING_KEEP_DAYS = 7
 # 序列化（存词条）
 # ===========================================================================
 
-def serialize_message(msg: V11Message) -> str:
+def serialize_message(msg: Message) -> str:
     """
     将 OneBot V11 Message 序列化为 JSON 字符串存入词条数据库。
 
@@ -86,11 +85,11 @@ def _download_image(url: str) -> str | None:
         return None
 
 
-def _read_file_base64(path: str) -> str | None:
+def _read_file_bytes(path: str) -> bytes | None:
     """读取文件并返回 base64 字符串，失败返回 None。"""
     try:
         with open(path, "rb") as f:
-            return base64.b64encode(f.read()).decode("ascii")
+            return f.read()
     except Exception as e:  # pylint: disable=broad-except
         logger.warning(f"读取文件失败 ({path}): {e}")
         return None
@@ -100,7 +99,7 @@ def _read_file_base64(path: str) -> str | None:
 # 反序列化（读词条）
 # ===========================================================================
 
-def deserialize_to_segments(raw: str) -> list[V11Seg]:
+def deserialize_to_segments(raw: str) -> list[MessageSegment]:
     """
     将词条 JSON 字符串反序列化为 V11Seg 列表，供发送使用。
 
@@ -112,9 +111,9 @@ def deserialize_to_segments(raw: str) -> list[V11Seg]:
     except (json.JSONDecodeError, TypeError):
         # 兼容旧版：直接当文本
         logger.debug(f"词条内容不是 JSON，作为文本处理: {raw[:80]}")
-        return [V11Seg.text(str(raw))]
+        return [MessageSegment.text(str(raw))]
 
-    result: list[V11Seg] = []
+    result: list[MessageSegment] = []
 
     for seg in segments_data:
         seg_type: str = seg.get("type", "")
@@ -123,46 +122,46 @@ def deserialize_to_segments(raw: str) -> list[V11Seg]:
         if seg_type == "text":
             text = data.get("text", "")
             if text:
-                result.append(V11Seg.text(text))
+                result.append(MessageSegment.text(text))
 
         elif seg_type == "image":
             file: str = data.get("file", "")
             # 去掉 file:// 前缀（兼容旧格式）
             local_path = file[len("file://"):] if file.startswith("file://") else file
 
-            b64: str = ""
+            img: bytes = b""
             if local_path and os.path.isfile(local_path):
-                b64 = _read_file_base64(local_path) or ""
+                img = _read_file_bytes(local_path) or b""
 
             # 兼容旧格式：有 url 字段，重新下载到本地再转 base64
-            if not b64:
+            if not img:
                 url: str = data.get("url", "")
                 if url:
                     dl = _download_image(url)
                     if dl:
-                        b64 = _read_file_base64(dl) or ""
+                        img = _read_file_bytes(dl) or b""
 
-            if b64:
-                result.append(V11Seg.image(f"base64://{b64}"))
+            if img:
+                result.append(MessageSegment.file_image(img))
             else:
-                result.append(V11Seg.text("（找不到图片，请重新编辑词条）"))
+                result.append(MessageSegment.text("（找不到图片，请重新编辑词条）"))
 
-        elif seg_type == "face":
-            result.append(V11Seg.face(int(data.get("id", 0))))
+        # elif seg_type == "face":
+            # result.append(MessageSegment.face(int(data.get("id", 0))))
 
-        elif seg_type == "at":
-            result.append(V11Seg.at(str(data.get("qq", ""))))
+        # elif seg_type == "at":
+        #     result.append(MessageSegment.at(str(data.get("qq", ""))))
 
         else:
-            try:
-                result.append(V11Seg(seg_type, data))
-            except Exception:  # pylint: disable=broad-except
-                logger.warning(f"无法还原消息段类型 {seg_type}，已跳过")
+            # try:
+            #     result.append(V11Seg(seg_type, data))
+            # except Exception:  # pylint: disable=broad-except
+            logger.warning(f"无法还原消息段类型 {seg_type}，已跳过")
 
     return result
 
 
-def build_message(raw: str) -> V11Message | None:
+def build_message(raw: str) -> Message | None:
     """
     反序列化词条并组装成 V11Message。
     若词条为空则返回 None。
@@ -170,7 +169,7 @@ def build_message(raw: str) -> V11Message | None:
     segs = deserialize_to_segments(raw)
     if not segs:
         return None
-    msg = V11Message()
+    msg = Message()
     for seg in segs:
         msg += seg
     return msg

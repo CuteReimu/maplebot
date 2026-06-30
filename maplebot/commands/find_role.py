@@ -8,7 +8,7 @@ import os
 import matplotlib
 import matplotlib.pyplot as plt
 import numpy as np
-from nonebot.adapters.onebot.v11 import Message, MessageSegment
+from nonebot.adapters.qq.message import Message, MessageSegment
 from nonebot.log import logger
 
 from maplebot.commands.file_utils import _file_lock
@@ -104,7 +104,7 @@ def _days_to_level(dated_exps, current_exp, current_lvl, lvl_single):
 
 
 # ---------- 图表绘制 ----------
-def _draw_chart(days, dated_exps, dated_lvls) -> str:
+def _draw_chart(days, dated_exps, dated_lvls) -> bytes:
     """绘制经验图表，返回 base64"""
     t = 1e12
     bar_values = []
@@ -169,7 +169,7 @@ def _draw_chart(days, dated_exps, dated_lvls) -> str:
     buf = io.BytesIO()
     plt.savefig(buf, format="png", bbox_inches="tight")
     plt.close(fig)
-    return base64.b64encode(buf.getvalue()).decode("ascii")
+    return buf.getvalue()
 
 def _try_encode_gb2312(name):
     try:
@@ -259,8 +259,8 @@ def generate_message_from_player_dict(player_dict: dict, convert_exp: bool = Fal
     msg = Message()
     if avatar:
         try:
-            base64.b64decode(avatar)
-            msg += MessageSegment.image(f"base64://{avatar}")
+            img = base64.b64decode(avatar)
+            msg += MessageSegment.file_image(img)
         except Exception:
             pass
 
@@ -270,7 +270,7 @@ def generate_message_from_player_dict(player_dict: dict, convert_exp: bool = Fal
         msg += text
         try:
             chart = _draw_chart(days, dated_exps, dated_lvls)
-            msg += MessageSegment.image(f"base64://{chart}")
+            msg += MessageSegment.file_image(chart)
         except Exception as e:
             logger.error(f"绘制图表失败: {e}")
     else:

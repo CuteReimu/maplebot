@@ -1,13 +1,15 @@
 """权限检查模块"""
-from nonebot.adapters.onebot.v11 import Bot
+from nonebot.adapters import Bot
 from nonebot.log import logger
 
 from maplebot.utils.config import config
 
 
-def is_super_admin(qq: int) -> bool:
+def is_super_admin(qq: str) -> bool:
+    return False
     return qq == config.get("admin", 0)
-async def is_admin(bot: Bot, group_id: int, qq: int) -> bool:
+async def is_admin(bot: Bot, group_id: str, qq: str) -> bool:
+    return False
     if is_super_admin(qq):
         return True
     try:

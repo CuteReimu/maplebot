@@ -14,7 +14,7 @@ _BOSS_ARC = [
 ]
 
 
-def get_more_damage_arc() -> str | None:
+def get_more_damage_arc() -> bytes | None:
     """生成 ARC 伤害表格，返回 base64 图片"""
     data = []
     for name, arc in _BOSS_ARC:

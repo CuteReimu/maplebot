@@ -1,10 +1,10 @@
 import matplotlib
 import matplotlib.pyplot as plt
 import numpy as np
-from nonebot.adapters.onebot.v11 import Message, MessageSegment
+from nonebot.adapters.qq.message import Message, MessageSegment
 from nonebot.log import logger
 
-from maplebot.utils.charts import _fig_to_base64
+from maplebot.utils.charts import _fig_to_bytes
 
 matplotlib.use("Agg")
 
@@ -91,8 +91,8 @@ def calculate_bonus_cd(content: str) -> Message | str:
 
     msg = Message()
     try:
-        b64 = _fig_to_base64(fig)
-        msg += MessageSegment.image(f"base64://{b64}")
+        img = _fig_to_bytes(fig)
+        msg += MessageSegment.file_image(img)
     except Exception as e:
         logger.error(f"Render bonus cd chart failed: {e}")
         plt.close(fig)

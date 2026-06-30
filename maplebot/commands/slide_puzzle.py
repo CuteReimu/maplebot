@@ -3,7 +3,6 @@
 生成一个随机可解的 3×3 数字华容道题目，用 A* 算法求解，
 将求解过程渲染成 GIF 动图，以 base64 字符串返回。
 """
-import base64
 import heapq
 import io
 import random
@@ -205,7 +204,7 @@ def _draw_frame(state_hash: int) -> Image.Image:
 
 # ─── 对外接口 ─────────────────────────────────────────────────────────────────
 
-def generate_slide_puzzle_gif() -> str:
+def generate_slide_puzzle_gif() -> bytes:
     """
     生成数字华容道求解动图。
     返回 GIF 的 base64 编码字符串（不含前缀）。
@@ -238,4 +237,4 @@ def generate_slide_puzzle_gif() -> str:
         optimize=False,
     )
     buf.seek(0)
-    return base64.b64encode(buf.read()).decode()
+    return buf.read()

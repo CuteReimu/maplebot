@@ -2,7 +2,7 @@
 import random
 
 import numpy as np
-from nonebot.adapters.onebot.v11 import Message, MessageSegment
+from nonebot.adapters.qq.message import Message, MessageSegment
 from nonebot.log import logger
 
 from maplebot.utils.charts import render_pie
@@ -381,7 +381,7 @@ def calculate_boom_count(content: str, new_kms: bool) -> Message | None:
 
     try:
         img = render_pie(values, labels, title)
-        return Message(MessageSegment.image(f"base64://{img}"))
+        return Message(MessageSegment.file_image(img))
     except Exception as e:
         logger.error(f"render chart failed: {e}")
         return None
@@ -474,7 +474,7 @@ def calculate_star_force(new_kms: bool, content: str) -> Message | None:
             pie_values = [v / divisor for v in pie_values]
             try:
                 img = render_pie(pie_values, pie_labels, unit=unit)
-                pie_img_seg = MessageSegment.image(f"base64://{img}")
+                pie_img_seg = MessageSegment.file_image(img)
             except Exception as e:
                 logger.error(f"render chart failed: {e}")
 

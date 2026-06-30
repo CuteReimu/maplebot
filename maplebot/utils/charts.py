@@ -1,5 +1,4 @@
 """图表生成模块"""
-import base64
 import io
 import os
 import sys
@@ -34,7 +33,7 @@ if _font_path:
     plt.rcParams["axes.unicode_minus"] = False
 
 
-def _fig_to_base64(fig, pad_inches=None) -> str:
+def _fig_to_bytes(fig, pad_inches=None) -> bytes:
     """将 matplotlib figure 转为 base64 PNG"""
     buf = io.BytesIO()
     save_kwargs: dict = {"format": "png", "bbox_inches": "tight", "dpi": 120}
@@ -42,7 +41,7 @@ def _fig_to_base64(fig, pad_inches=None) -> str:
         save_kwargs["pad_inches"] = pad_inches
     fig.savefig(buf, **save_kwargs)
     plt.close(fig)
-    return base64.b64encode(buf.getvalue()).decode("ascii")
+    return buf.getvalue()
 
 
 # ====================== 表格渲染 ======================
@@ -53,7 +52,7 @@ def render_table(
     width: int = 600,
     cell_colors: list[list[str | None]] | None = None,
     header_font_color: str = "#232323",
-) -> str:
+) -> bytes:
     """
     渲染表格为 base64 PNG 图片。
 
@@ -91,7 +90,7 @@ def render_table(
                 if color:
                     table[i + 1, j].set_facecolor(color)
 
-    return _fig_to_base64(fig, pad_inches=0)
+    return _fig_to_bytes(fig, pad_inches=0)
 
 
 # ====================== 饼图渲染 ======================
@@ -101,7 +100,7 @@ def render_pie(
     labels: list[str],
     title: str = "",
     unit: str = "",
-) -> str:
+) -> bytes:
     """渲染饼图为 base64 PNG 图片。
 
     使用图例（legend）显示标签，避免小区块文字重叠。
@@ -163,7 +162,7 @@ def render_pie(
     if title:
         ax.set_title(title)
 
-    return _fig_to_base64(fig)
+    return _fig_to_bytes(fig)
 
 
 # ====================== 柱状图+折线图 ======================
@@ -179,7 +178,7 @@ def render_bar_line(
     y2_range: tuple[float, float] | None = None,
     y_ticks: list[float] | None = None,
     y2_ticks: list[float] | None = None,
-) -> str:
+) -> bytes:
     """渲染柱状图(左轴)+折线图(右轴)为 base64 PNG 图片"""
     bg = "#050816"
     fig, ax1 = plt.subplots(figsize=(10, 5))
@@ -221,4 +220,4 @@ def render_bar_line(
         ax2.spines[spine].set_visible(False)
     ax1.spines["bottom"].set_color("#20253a")
 
-    return _fig_to_base64(fig)
+    return _fig_to_bytes(fig)

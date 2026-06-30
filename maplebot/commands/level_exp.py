@@ -32,7 +32,7 @@ def calculate_exp_between_level(start: int, end: int) -> str | None:
     return f"从{start}级到{end}级需要经验：{s}"
 
 
-def calculate_level_exp() -> str | None:
+def calculate_level_exp() -> bytes | None:
     """生成 201~300 级的经验表格图片"""
     cur: list[str] = []
     acc: list[str] = []

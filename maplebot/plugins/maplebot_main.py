@@ -6,12 +6,8 @@ from typing import Any
 
 from nonebot import on_command, on_message, require, get_bot
 from nonebot.adapters import Bot, Event
-from nonebot.adapters.onebot.v11 import (
-    Bot as V11Bot,
-    GroupMessageEvent,
-    Message as V11Message,
-    MessageSegment as V11Seg,
-)
+from nonebot.adapters.qq import GroupMessageCreateEvent
+from nonebot.adapters.qq.message import MessageSegment
 from nonebot.log import logger
 from nonebot.params import CommandArg, Command
 from nonebot.rule import Rule
@@ -29,11 +25,6 @@ except ImportError:
 require("nonebot_plugin_apscheduler")
 from nonebot_plugin_apscheduler import scheduler
 from maplebot.commands.arc_more_damage import get_more_damage_arc
-from maplebot.commands.boss_party import (
-    handle_boss_party,
-    handle_subscribe,
-    handle_unsubscribe,
-)
 from maplebot.commands.cube import calculate_cube, calculate_cube_all
 from maplebot.commands.find_role import find_role
 from maplebot.commands.scrape import scrape_role_background
@@ -56,7 +47,7 @@ from maplebot.utils.dict_entry import serialize_message, build_message, cleanup_
 logger.opt(colors=True).info("<green>✅ maplebot_main 插件加载成功！</green>")
 
 # ---------- 待添加词条队列 ----------
-_add_db_qq_list: dict[int, str] = {}
+_add_db_qq_list: dict[str, str] = {}
 
 _BOSS_LIST = list("4M36789绿黑赛狗卡波马猴")
 
@@ -67,7 +58,6 @@ _HELP_TIPS = [
     "升级经验", "升级经验 起始级 目标级",
     "等级压制 等级差",
     "神秘压制",
-    "我要开车 BOSS编号", "订阅开车 BOSS编号", "取消订阅 [BOSS编号]",
     "爆炸次数",
     "滑块",
     "攻击收益 当前攻击% 新增攻击%",
@@ -84,50 +74,28 @@ def _deal_key(s: str) -> str:
     return s.strip().lower()
 
 
-def _in_valid_group(group_id: int) -> bool:
-    groups = config.get("qq_groups", [])
-    return int(group_id) in [int(g) for g in groups]
-
-
 # ====================== 通用工具 ======================
-
-async def _check_valid_group(event: Event) -> bool:
-    """Rule：仅允许配置中的 QQ 群或 Console 事件"""
-    if _is_console(event):
-        return True
-    if isinstance(event, GroupMessageEvent):
-        return _in_valid_group(event.group_id)
-    return False
-
-
-_valid_group_rule = Rule(_check_valid_group)
-
-
-def _get_user_id(event: Event) -> int:
-    try:
-        return int(event.get_user_id())
-    except (ValueError, NotImplementedError):
-        return 0
 
 
 def _is_console(event: Event) -> bool:
     return _HAS_CONSOLE and ConsoleMessageEvent is not None and isinstance(event, ConsoleMessageEvent)
 
 
-def _make_image_or_text(s: str, event: Event) -> Any:
-    """OneBot 返回 MessageSegment.image；Console 返回纯文字占位。"""
+def _make_image_or_text(s: bytes, event: Event) -> Any:
+    """OneBot 返回 MessageSegment.file_image；Console 返回纯文字占位。"""
     if _is_console(event):
-        return s
-    return V11Seg.image(f"base64://{s}")
+        return "[图片]"
+    return MessageSegment.file_image(s)
 
 
 async def _is_admin(bot: Bot, event: Event) -> bool:
+    return False
     """判断当前用户是否为管理员"""
     if _is_console(event):
         return True
-    if isinstance(bot, V11Bot) and isinstance(event, GroupMessageEvent):
+    if isinstance(bot, V11Bot) and isinstance(event, GroupMessageCreateEvent):
         from maplebot.utils.perm import is_admin  # pylint: disable=import-outside-toplevel
-        return await is_admin(bot, event.group_id, event.user_id)
+        return await is_admin(bot, event.group_id, event.get_user_id())
     return False
 
 
@@ -137,7 +105,7 @@ _tfidf_tracker = on_message(priority=1, block=False)
 
 @_tfidf_tracker.handle()
 async def _handle_tfidf(event: Event):
-    if not isinstance(event, GroupMessageEvent) or not _in_valid_group(event.group_id):
+    if not isinstance(event, GroupMessageCreateEvent):
         return
     raw_text = event.get_plaintext().strip()
     if raw_text:
@@ -150,9 +118,9 @@ _dict_callback = on_message(priority=5, block=False)
 
 @_dict_callback.handle()
 async def _handle_dict_callback(event: Event):
-    if not isinstance(event, GroupMessageEvent) or not _in_valid_group(event.group_id):
+    if not isinstance(event, GroupMessageCreateEvent):
         return
-    user_id = _get_user_id(event)
+    user_id = event.get_user_id()
     if user_id not in _add_db_qq_list:
         return
     key = _add_db_qq_list.pop(user_id)
@@ -171,7 +139,7 @@ async def _handle_dict_callback(event: Event):
 # ====================== 命令处理器（priority=10） ======================
 
 # ---- 查看帮助 ----
-_help_cmd = on_command("查看帮助", rule=_valid_group_rule, force_whitespace=True, priority=10, block=True)
+_help_cmd = on_command("查看帮助", force_whitespace=True, priority=10, block=True)
 
 
 @_help_cmd.handle()
@@ -182,9 +150,7 @@ async def _handle_help():
 # ---- 艾特机器人（无其他内容）触发帮助 ----
 async def _check_at_bot_only(event: Event) -> bool:
     """Rule：@机器人且无其他有效内容（NoneBot2 已将 @bot 段剥离，直接检查剩余消息）"""
-    if not isinstance(event, GroupMessageEvent):
-        return False
-    if not _in_valid_group(event.group_id):
+    if not isinstance(event, GroupMessageCreateEvent):
         return False
     if not event.to_me:
         return False
@@ -206,7 +172,7 @@ async def _handle_at_bot():
 
 
 # ---- ping ----
-_ping_cmd = on_command("ping", rule=_valid_group_rule, force_whitespace=True, priority=10, block=True)
+_ping_cmd = on_command("ping", force_whitespace=True, priority=10, block=True)
 
 
 @_ping_cmd.handle()
@@ -217,7 +183,7 @@ async def _handle_ping(args=CommandArg()):
 
 
 # ---- roll ----
-_roll_cmd = on_command("roll", rule=_valid_group_rule, force_whitespace=True, priority=10, block=True)
+_roll_cmd = on_command("roll", force_whitespace=True, priority=10, block=True)
 
 
 @_roll_cmd.handle()
@@ -235,7 +201,7 @@ async def _handle_roll(args=CommandArg()):
 
 
 # ---- 等级压制 ----
-_exp_damage_cmd = on_command("等级压制", rule=_valid_group_rule, force_whitespace=True, priority=10, block=True)
+_exp_damage_cmd = on_command("等级压制", force_whitespace=True, priority=10, block=True)
 
 
 @_exp_damage_cmd.handle()
@@ -250,7 +216,7 @@ async def _handle_exp_damage(args=CommandArg()):
 
 
 # ---- 升级经验 ----
-_level_exp_cmd = on_command("升级经验", rule=_valid_group_rule, force_whitespace=True, priority=10, block=True)
+_level_exp_cmd = on_command("升级经验", force_whitespace=True, priority=10, block=True)
 
 
 @_level_exp_cmd.handle()
@@ -273,7 +239,7 @@ async def _handle_level_exp(event: Event, args=CommandArg()):
 
 
 # ---- 爆炸次数 ----
-_boom_cmd = on_command("爆炸次数", rule=_valid_group_rule, force_whitespace=True, priority=10, block=True)
+_boom_cmd = on_command("爆炸次数", force_whitespace=True, priority=10, block=True)
 
 
 @_boom_cmd.handle()
@@ -285,21 +251,21 @@ async def _handle_boom(args=CommandArg()):
 
 
 # ---- 滑块（数字华容道动图） ----
-_slide_puzzle_cmd = on_command("滑块", rule=_valid_group_rule, force_whitespace=True, priority=10, block=True)
+_slide_puzzle_cmd = on_command("滑块", force_whitespace=True, priority=10, block=True)
 
 
 @_slide_puzzle_cmd.handle()
 async def _handle_slide_puzzle(event: Event):
     try:
-        b64 = generate_slide_puzzle_gif()
-        await _slide_puzzle_cmd.finish(_make_image_or_text(b64, event))
+        img = generate_slide_puzzle_gif()
+        await _slide_puzzle_cmd.finish(_make_image_or_text(img, event))
     except Exception as e:
         logger.error(f"[slide_puzzle] 生成失败: {e}")
         await _slide_puzzle_cmd.finish()
 
 
 # ---- 攻击收益 ----
-_bonus_att_cmd = on_command("攻击收益", rule=_valid_group_rule, force_whitespace=True, priority=10, block=True)
+_bonus_att_cmd = on_command("攻击收益", force_whitespace=True, priority=10, block=True)
 
 
 @_bonus_att_cmd.handle()
@@ -313,7 +279,7 @@ async def _handle_bonus_att(event: Event, args=CommandArg()):
 
 
 # ---- BOSS伤害收益 ----
-_bonus_bd_cmd = on_command("BOSS伤害收益", aliases={"B伤收益", "boss伤害收益", "Boss伤害收益", "b伤收益", "BD收益", "bd收益"}, rule=_valid_group_rule, force_whitespace=True, priority=10, block=True)
+_bonus_bd_cmd = on_command("BOSS伤害收益", aliases={"B伤收益", "boss伤害收益", "Boss伤害收益", "b伤收益", "BD收益", "bd收益"}, force_whitespace=True, priority=10, block=True)
 
 
 @_bonus_bd_cmd.handle()
@@ -327,7 +293,7 @@ async def _handle_bonus_bd(event: Event, args=CommandArg()):
 
 
 # ---- 无视收益 ----
-_bonus_idf_cmd = on_command("无视收益", rule=_valid_group_rule, force_whitespace=True, priority=10, block=True)
+_bonus_idf_cmd = on_command("无视收益", force_whitespace=True, priority=10, block=True)
 
 
 @_bonus_idf_cmd.handle()
@@ -341,7 +307,7 @@ async def _handle_bonus_idf(event: Event, args=CommandArg()):
 
 
 # ---- 爆伤收益 ----
-_bonus_cd_cmd = on_command("爆伤收益", aliases={"暴伤收益"}, rule=_valid_group_rule, force_whitespace=True, priority=10, block=True)
+_bonus_cd_cmd = on_command("爆伤收益", aliases={"暴伤收益"}, force_whitespace=True, priority=10, block=True)
 
 
 @_bonus_cd_cmd.handle()
@@ -355,7 +321,7 @@ async def _handle_bonus_cd(event: Event, args=CommandArg()):
 
 
 # ---- 神秘压制 ----
-_arc_cmd = on_command("神秘压制", rule=_valid_group_rule, force_whitespace=True, priority=10, block=True)
+_arc_cmd = on_command("神秘压制", force_whitespace=True, priority=10, block=True)
 
 
 @_arc_cmd.handle()
@@ -371,7 +337,6 @@ async def _handle_arc(event: Event, args=CommandArg()):
 _star_force_cmd = on_command(
     "模拟升星",
     aliases={"模拟上星", "升星期望", "上星期望", "模拟升星旧", "模拟上星旧", "升星期望旧", "上星期望旧"},
-    rule=_valid_group_rule,
     force_whitespace=True,
     priority=10,
     block=True,
@@ -391,7 +356,7 @@ async def _handle_star_force(cmd: tuple[str, ...] = Command(), args=CommandArg()
 
 
 # ---- 洗魔方 ----
-_cube_cmd = on_command("洗魔方", rule=_valid_group_rule, force_whitespace=True, priority=10, block=True)
+_cube_cmd = on_command("洗魔方", force_whitespace=True, priority=10, block=True)
 
 
 @_cube_cmd.handle()
@@ -402,14 +367,14 @@ async def _handle_cube(args=CommandArg()):
 
 
 # ---- 查询我 ----
-_query_me_cmd = on_command("查询我", rule=_valid_group_rule, force_whitespace=True, priority=10, block=True)
+_query_me_cmd = on_command("查询我", force_whitespace=True, priority=10, block=True)
 
 
 @_query_me_cmd.handle()
 async def _handle_query_me(event: Event, args=CommandArg()):
     content = args.extract_plain_text().strip()
     if not content:
-        user_id = _get_user_id(event)
+        user_id = event.get_user_id()
         data = find_role_data.get_string_map_string("data")
         name = data.get(str(user_id), "")
         if not name:
@@ -423,7 +388,7 @@ async def _handle_query_me(event: Event, args=CommandArg()):
 
 
 # ---- 查询绑定 QQ号 ----
-_query_bind_cmd = on_command("查询绑定", rule=_valid_group_rule, force_whitespace=True, priority=10, block=True)
+_query_bind_cmd = on_command("查询绑定", force_whitespace=True, priority=10, block=True)
 
 
 @_query_bind_cmd.handle()
@@ -444,7 +409,7 @@ async def _handle_query_bind(args=CommandArg()):
 
 # ---- 查询词条 / 搜索词条 ----
 _search_dict_cmd = on_command(
-    "查询词条", aliases={"搜索词条"}, rule=_valid_group_rule, force_whitespace=True, priority=10, block=True,
+    "查询词条", aliases={"搜索词条"}, force_whitespace=True, priority=10, block=True,
 )
 
 
@@ -458,7 +423,7 @@ async def _handle_search_dict(args=CommandArg()):
 
 # ---- 查询 游戏名 ----
 # force_whitespace 不能用于此命令：需要同时支持 "查询 @某人"（有空格）和 "查询@某人"（无空格，at段紧跟命令）
-_query_cmd = on_command("查询", rule=_valid_group_rule, priority=10, block=True)
+_query_cmd = on_command("查询", priority=10, block=True)
 
 
 @_query_cmd.handle()
@@ -490,14 +455,14 @@ async def _handle_query(event: Event, args=CommandArg()):
 
 
 # ---- 绑定 ----
-_bind_cmd = on_command("绑定", rule=_valid_group_rule, force_whitespace=True, priority=10, block=True)
+_bind_cmd = on_command("绑定", force_whitespace=True, priority=10, block=True)
 
 
 @_bind_cmd.handle()
 async def _handle_bind(event: Event, args=CommandArg()):
     content = args.extract_plain_text().strip()
     if content and " " not in content:
-        user_id = _get_user_id(event)
+        user_id = event.get_user_id()
         data = find_role_data.get_string_map_string("data")
         uid = str(user_id)
         if uid in data and data[uid]:
@@ -510,14 +475,14 @@ async def _handle_bind(event: Event, args=CommandArg()):
 
 
 # ---- 解绑 ----
-_unbind_cmd = on_command("解绑", rule=_valid_group_rule, force_whitespace=True, priority=10, block=True)
+_unbind_cmd = on_command("解绑", force_whitespace=True, priority=10, block=True)
 
 
 @_unbind_cmd.handle()
 async def _handle_unbind(event: Event, args=CommandArg()):
     content = args.extract_plain_text().strip()
     if not content:
-        user_id = _get_user_id(event)
+        user_id = event.get_user_id()
         data = find_role_data.get_string_map_string("data")
         uid = str(user_id)
         if uid in data and data[uid]:
@@ -529,49 +494,8 @@ async def _handle_unbind(event: Event, args=CommandArg()):
             await _unbind_cmd.finish("你还未绑定")
 
 
-# ---- 我要开车 ----
-_kaiche_cmd = on_command("我要开车", rule=_valid_group_rule, force_whitespace=True, priority=10, block=True)
-
-
-@_kaiche_cmd.handle()
-async def _handle_kaiche(bot: Bot, event: Event, args=CommandArg()):
-    content = args.extract_plain_text().strip()
-    if _is_console(event):
-        await _kaiche_cmd.finish("（Console 调试模式不支持开车功能，需要 OneBot V11 环境）")
-    elif isinstance(bot, V11Bot) and isinstance(event, GroupMessageEvent):
-        result = await handle_boss_party(bot, event, _BOSS_LIST, content)
-        if result:
-            await _kaiche_cmd.finish(result)
-
-
-# ---- 订阅开车 ----
-_subscribe_cmd = on_command("订阅开车", rule=_valid_group_rule, force_whitespace=True, priority=10, block=True)
-
-
-@_subscribe_cmd.handle()
-async def _handle_subscribe(event: Event, args=CommandArg()):
-    content = args.extract_plain_text().strip()
-    user_id = _get_user_id(event)
-    result = handle_subscribe(_BOSS_LIST, content, user_id)
-    if result:
-        await _subscribe_cmd.finish(result)
-
-
-# ---- 取消订阅 ----
-_unsubscribe_cmd = on_command("取消订阅", rule=_valid_group_rule, force_whitespace=True, priority=10, block=True)
-
-
-@_unsubscribe_cmd.handle()
-async def _handle_unsubscribe(event: Event, args=CommandArg()):
-    content = args.extract_plain_text().strip()
-    user_id = _get_user_id(event)
-    result = handle_unsubscribe(_BOSS_LIST, content, user_id)
-    if result:
-        await _unsubscribe_cmd.finish(result)
-
-
 # ---- 添加词条（管理员） ----
-_add_dict_cmd = on_command("添加词条", rule=_valid_group_rule, force_whitespace=True, priority=10, block=True)
+_add_dict_cmd = on_command("添加词条", force_whitespace=True, priority=10, block=True)
 
 
 @_add_dict_cmd.handle()
@@ -581,12 +505,12 @@ async def _handle_add_dict(bot: Bot, event: Event, args=CommandArg()):
     content = args.extract_plain_text().strip()
     key = _deal_key(content)
     if key:
-        user_id = _get_user_id(event)
+        user_id = event.get_user_id()
         await _deal_add_dict(_add_dict_cmd, user_id, key)
 
 
 # ---- 修改词条（管理员） ----
-_modify_dict_cmd = on_command("修改词条", rule=_valid_group_rule, force_whitespace=True, priority=10, block=True)
+_modify_dict_cmd = on_command("修改词条", force_whitespace=True, priority=10, block=True)
 
 
 @_modify_dict_cmd.handle()
@@ -596,12 +520,12 @@ async def _handle_modify_dict(bot: Bot, event: Event, args=CommandArg()):
     content = args.extract_plain_text().strip()
     key = _deal_key(content)
     if key:
-        user_id = _get_user_id(event)
+        user_id = event.get_user_id()
         await _deal_modify_dict(_modify_dict_cmd, user_id, key)
 
 
 # ---- 删除词条（管理员） ----
-_delete_dict_cmd = on_command("删除词条", rule=_valid_group_rule, force_whitespace=True, priority=10, block=True)
+_delete_dict_cmd = on_command("删除词条", force_whitespace=True, priority=10, block=True)
 
 
 @_delete_dict_cmd.handle()
@@ -615,7 +539,7 @@ async def _handle_delete_dict(bot: Bot, event: Event, args=CommandArg()):
 
 
 # ---- 列出过期图片（管理员）：找出本地图片文件已丢失的词条 ----
-_missing_img_cmd = on_command("列出过期图片", rule=_valid_group_rule, force_whitespace=True, priority=10, block=True)
+_missing_img_cmd = on_command("列出过期图片", force_whitespace=True, priority=10, block=True)
 
 
 @_missing_img_cmd.handle()
@@ -636,7 +560,7 @@ async def _handle_missing_img(bot: Bot, event: Event):
 
 
 # ---- 计算神秘/原初/六转升级成本   ----
-_arc_calculate_cmd = on_command("神秘", rule=_valid_group_rule, force_whitespace=True, priority=10, block=True)
+_arc_calculate_cmd = on_command("神秘", force_whitespace=True, priority=10, block=True)
 
 
 @_arc_calculate_cmd.handle()
@@ -653,7 +577,7 @@ async def _handle_arc_calculate(_: Event, args=CommandArg()):
             pass
     await _arc_calculate_cmd.finish("命令格式：\n神秘 初始等级 目标等级， 等级1~20")
 
-_sac_calculate_cmd = on_command("原初", rule=_valid_group_rule, force_whitespace=True, priority=10, block=True)
+_sac_calculate_cmd = on_command("原初", force_whitespace=True, priority=10, block=True)
 
 
 @_sac_calculate_cmd.handle()
@@ -670,7 +594,7 @@ async def _handle_sac_calculate(_: Event, args=CommandArg()):
             pass
     await _sac_calculate_cmd.finish("命令格式：\n原初 初始等级 目标等级， 等级1~11")
 
-_hexa_calculate_cmd = on_command("六转", rule=_valid_group_rule, force_whitespace=True, priority=10, block=True)
+_hexa_calculate_cmd = on_command("六转", force_whitespace=True, priority=10, block=True)
 
 
 @_hexa_calculate_cmd.handle()
@@ -693,7 +617,7 @@ _dict_fallback = on_message(priority=20, block=False)
 
 @_dict_fallback.handle()
 async def _handle_dict_fallback(event: Event):
-    if not isinstance(event, GroupMessageEvent) or not _in_valid_group(event.group_id):
+    if not isinstance(event, GroupMessageCreateEvent):
         return
     raw_text = event.get_plaintext().strip()
     if not raw_text:
@@ -708,7 +632,7 @@ async def _handle_dict_fallback(event: Event):
 
 
 # ====================== 词条 CRUD ======================
-async def _deal_add_dict(matcher, user_id: int, key: str):
+async def _deal_add_dict(matcher, user_id: str, key: str):
     if "." in key:
         await matcher.finish("词条名称中不能包含 . 符号")
         return
@@ -723,7 +647,7 @@ async def _deal_add_dict(matcher, user_id: int, key: str):
         _add_db_qq_list[user_id] = key
 
 
-async def _deal_modify_dict(matcher, user_id: int, key: str):
+async def _deal_modify_dict(matcher, user_id: str, key: str):
     m = qun_db.get_string_map_string("data")
     if key not in m:
         await matcher.finish("词条不存在")
@@ -762,6 +686,7 @@ async def _deal_search_dict(matcher, key: str):
 
 # ====================== 定时任务：角色数据预抓取 ======================
 async def _notify_scrape_failure():
+    return False
     """抓取失败时向配置的群发送告警并艾特管理员"""
     try:
         bot = get_bot()

@@ -2,7 +2,7 @@
 import json
 import os
 
-from nonebot.adapters.onebot.v11 import Message, MessageSegment
+from nonebot.adapters.qq.message import Message, MessageSegment
 from nonebot.log import logger
 
 from maplebot.utils.charts import render_table
@@ -441,7 +441,7 @@ def calculate_cube_all() -> Message | None:
             header=header, data=rows, width=770,
             cell_colors=cell_colors,
         )
-        return Message(MessageSegment.image(f"base64://{img}"))
+        return Message(MessageSegment.file_image(img))
     except Exception as e:
         logger.error(f"生成表格失败: {e}")
         return None
@@ -498,7 +498,7 @@ def calculate_cube(s: str) -> Message | None:
             header=[f"{item_level}级{label}", "（底色表示魔方颜色）"],
             data=rows, width=250, cell_colors=row_colors,
         )
-        return Message(MessageSegment.image(f"base64://{img}"))
+        return Message(MessageSegment.file_image(img))
     except Exception as e:
         logger.error(f"生成表格失败: {e}")
         return None

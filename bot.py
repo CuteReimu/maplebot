@@ -5,7 +5,7 @@ import os
 
 import nonebot
 from loguru import logger
-from nonebot.adapters.onebot.v11 import Adapter as OneBotV11Adapter
+from nonebot.adapters.qq import Adapter as QQAdapter
 
 nonebot.init()
 
@@ -19,11 +19,11 @@ if not _IS_PROD:
         from nonebot.adapters.console import Adapter as ConsoleAdapter
         driver.register_adapter(ConsoleAdapter)  # type: ignore[arg-type]
     except ImportError:
-        driver.register_adapter(OneBotV11Adapter)
+        driver.register_adapter(QQAdapter)
 
 # prod 环境：将所有日志（loguru + stdlib logging）输出到按天分割的文件
 if _IS_PROD:
-    driver.register_adapter(OneBotV11Adapter)
+    driver.register_adapter(QQAdapter)
     _LOG_DIR = os.path.join(os.path.dirname(__file__), "logs")
     os.makedirs(_LOG_DIR, exist_ok=True)
 
@@ -63,4 +63,5 @@ if _IS_PROD:
 nonebot.load_plugins("maplebot/plugins")
 
 if __name__ == "__main__":
+    nonebot.get_loaded_plugins
     nonebot.run()
