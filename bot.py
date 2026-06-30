@@ -63,5 +63,4 @@ if _IS_PROD:
 nonebot.load_plugins("maplebot/plugins")
 
 if __name__ == "__main__":
-    nonebot.get_loaded_plugins
     nonebot.run()
