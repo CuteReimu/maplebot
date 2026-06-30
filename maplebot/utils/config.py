@@ -105,3 +105,4 @@ class YamlStore:
 qun_db = YamlStore(_DATA_DIR, "QunDb")
 find_role_data = YamlStore(_DATA_DIR, "FindRoleData")
 level_exp_data = YamlStore(_DATA_DIR, "LevelExpData")
+admin_data = YamlStore(_DATA_DIR, "AdminData")

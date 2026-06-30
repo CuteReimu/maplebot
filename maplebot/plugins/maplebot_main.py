@@ -6,11 +6,13 @@ from typing import Any
 
 from nonebot import on_command, on_message, require, get_bot
 from nonebot.adapters import Event
-from nonebot.adapters.qq import GroupMessageCreateEvent, C2CMessageCreateEvent
+from nonebot.adapters.qq import GroupMessageCreateEvent
 from nonebot.adapters.qq.message import Message, MessageSegment, LocalAttachment
 from nonebot.log import logger
 from nonebot.params import CommandArg, Command
 from nonebot.rule import Rule
+
+from maplebot.utils.perm import is_admin, is_super_admin, add_admin, del_admin, try_init_super_admin
 
 try:
     from nonebot.adapters.console import (
@@ -108,11 +110,16 @@ def _make_image_or_text(s: bytes, event: Event) -> Any:
     return MessageSegment.file_image(s)
 
 
-# 目前没有什么好办法获得角色在群里的身份，先只允许私聊进行管理，然后只允许管理加好友
 def _is_admin(event: Event) -> bool:
     if _is_console(event):
         return True
-    return isinstance(event, C2CMessageCreateEvent)
+    return is_admin(event.get_user_id())
+
+
+def _is_super_admin(event: Event) -> bool:
+    if _is_console(event):
+        return True
+    return is_super_admin(event.get_user_id())
 
 
 # ====================== TF-IDF 追踪（最高优先级，不阻塞） ======================
@@ -700,9 +707,43 @@ async def _deal_search_dict(matcher, key: str):
         await matcher.finish(f"搜索不到词条({key})")
 
 
+# ---- 管理员相关 ----
+_admin_cmd_add = on_command("增加管理员", priority=10, block=True)
+
+
+@_admin_cmd_add.handle()
+async def _handle_admin_cmd_add(event: Event, args: Message = CommandArg()):
+    try_init_super_admin(event.get_user_id())
+    if not _is_super_admin(event):
+        await _admin_cmd_add.finish()
+    for seg in args:
+        if seg.type in ("mention_user", "at"):
+            target_uid = seg.data.get("user_id", "") or seg.data.get("qq", "")
+            if not target_uid:
+                continue
+            await _admin_cmd_add.finish("增加管理员成功" if add_admin(target_uid) else "已经是管理员了")
+    await _admin_cmd_add.finish("增加管理员失败")
+
+
+_admin_cmd_del = on_command("删除管理员", priority=10, block=True)
+
+
+@_admin_cmd_del.handle()
+async def _handle__admin_cmd_del(event: Event, args: Message = CommandArg()):
+    if not _is_super_admin(event):
+        await _admin_cmd_del.finish()
+    for seg in args:
+        if seg.type in ("mention_user", "at"):
+            target_uid = seg.data.get("user_id", "") or seg.data.get("qq", "")
+            if not target_uid:
+                continue
+            await _admin_cmd_del.finish("删除管理员成功" if del_admin(target_uid) else "不是管理员")
+    await _admin_cmd_del.finish("删除管理员失败")
+
+
 # ====================== 定时任务：角色数据预抓取 ======================
 async def _notify_scrape_failure():
-    return False
+    return
     """抓取失败时向配置的群发送告警并艾特管理员"""
     try:
         bot = get_bot()

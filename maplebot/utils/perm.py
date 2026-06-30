@@ -1,20 +1,39 @@
 """权限检查模块"""
-from nonebot.adapters import Bot
-from nonebot.log import logger
-
-from maplebot.utils.config import config
+from maplebot.utils.config import admin_data
 
 
 def is_super_admin(qq: str) -> bool:
-    return False
-    return qq == config.get("admin", 0)
-async def is_admin(bot: Bot, group_id: str, qq: str) -> bool:
-    return False
+    return qq == admin_data.get("super_admin")
+
+
+def is_admin(qq: str) -> bool:
     if is_super_admin(qq):
         return True
-    try:
-        info = await bot.get_group_member_info(group_id=group_id, user_id=qq, no_cache=False)
-        return info.get("role") in ("admin", "owner")
-    except Exception as e:
-        logger.error(f"获取群成员信息失败: {e}")
+    return qq in admin_data.get("admin", [])
+
+
+def try_init_super_admin(qq: str) -> None:
+    if admin_data.get("super_admin"):
+        return
+    admin_data.set("super_admin", qq)
+    admin_data.save()
+
+
+def add_admin(qq: str) -> bool:
+    admins: list[str] = admin_data.get("admin", [])
+    if qq in admins:
         return False
+    admins.append(qq)
+    admin_data.set("admin", admins)
+    admin_data.save()
+    return True
+
+
+def del_admin(qq: str) -> bool:
+    admins: list[str] = admin_data.get("admin", [])
+    if qq not in admins:
+        return False
+    admins.remove(qq)
+    admin_data.set("admin", admins)
+    admin_data.save()
+    return True
