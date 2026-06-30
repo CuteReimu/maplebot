@@ -6,7 +6,7 @@ from typing import Any
 
 from nonebot import on_command, on_message, require, get_bot
 from nonebot.adapters import Bot, Event
-from nonebot.adapters.qq import GroupMessageCreateEvent
+from nonebot.adapters.qq import GroupMessageCreateEvent, C2CMessageCreateEvent
 from nonebot.adapters.qq.message import MessageSegment
 from nonebot.log import logger
 from nonebot.params import CommandArg, Command
@@ -88,15 +88,11 @@ def _make_image_or_text(s: bytes, event: Event) -> Any:
     return MessageSegment.file_image(s)
 
 
-async def _is_admin(bot: Bot, event: Event) -> bool:
-    return False
-    """判断当前用户是否为管理员"""
+# 目前没有什么好办法获得角色在群里的身份，先只允许私聊进行管理，然后只允许管理加好友
+def _is_admin(event: Event) -> bool:
     if _is_console(event):
         return True
-    if isinstance(bot, V11Bot) and isinstance(event, GroupMessageCreateEvent):
-        from maplebot.utils.perm import is_admin  # pylint: disable=import-outside-toplevel
-        return await is_admin(bot, event.group_id, event.get_user_id())
-    return False
+    return isinstance(event, C2CMessageCreateEvent)
 
 
 # ====================== TF-IDF 追踪（最高优先级，不阻塞） ======================
@@ -499,8 +495,8 @@ _add_dict_cmd = on_command("添加词条", force_whitespace=True, priority=10, b
 
 
 @_add_dict_cmd.handle()
-async def _handle_add_dict(bot: Bot, event: Event, args=CommandArg()):
-    if not await _is_admin(bot, event):
+async def _handle_add_dict(event: Event, args=CommandArg()):
+    if not _is_admin(event):
         return
     content = args.extract_plain_text().strip()
     key = _deal_key(content)
@@ -514,8 +510,8 @@ _modify_dict_cmd = on_command("修改词条", force_whitespace=True, priority=10
 
 
 @_modify_dict_cmd.handle()
-async def _handle_modify_dict(bot: Bot, event: Event, args=CommandArg()):
-    if not await _is_admin(bot, event):
+async def _handle_modify_dict(event: Event, args=CommandArg()):
+    if not _is_admin(event):
         return
     content = args.extract_plain_text().strip()
     key = _deal_key(content)
@@ -529,8 +525,8 @@ _delete_dict_cmd = on_command("删除词条", force_whitespace=True, priority=10
 
 
 @_delete_dict_cmd.handle()
-async def _handle_delete_dict(bot: Bot, event: Event, args=CommandArg()):
-    if not await _is_admin(bot, event):
+async def _handle_delete_dict(event: Event, args=CommandArg()):
+    if not _is_admin(event):
         return
     content = args.extract_plain_text().strip()
     key = _deal_key(content)
@@ -543,8 +539,8 @@ _missing_img_cmd = on_command("列出过期图片", force_whitespace=True, prior
 
 
 @_missing_img_cmd.handle()
-async def _handle_missing_img(bot: Bot, event: Event):
-    if not await _is_admin(bot, event):
+async def _handle_missing_img(event: Event):
+    if not _is_admin(event):
         return
     m = qun_db.get_string_map_string("data")
     missing = find_entries_with_missing_images(m)
