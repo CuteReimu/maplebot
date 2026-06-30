@@ -266,7 +266,7 @@ def generate_message_from_player_dict(player_dict: dict, convert_exp: bool = Fal
 
     text = f"角色名：{pname}\n职业：{job_name}\n等级：{level} ({exp_pct}%)\n联盟：{legion}\n"
     if has_change:
-        text += f"预计还有{days_needed}天升级\n"
+        text += f"预计还有{days_needed}天升级"
         msg += text
         try:
             chart = _draw_chart(days, dated_exps, dated_lvls)

@@ -5,9 +5,9 @@ import random
 from typing import Any
 
 from nonebot import on_command, on_message, require, get_bot
-from nonebot.adapters import Bot, Event
+from nonebot.adapters import Event
 from nonebot.adapters.qq import GroupMessageCreateEvent, C2CMessageCreateEvent
-from nonebot.adapters.qq.message import MessageSegment
+from nonebot.adapters.qq.message import Message, MessageSegment, LocalAttachment
 from nonebot.log import logger
 from nonebot.params import CommandArg, Command
 from nonebot.rule import Rule
@@ -75,6 +75,26 @@ def _deal_key(s: str) -> str:
 
 
 # ====================== 通用工具 ======================
+
+def _ensure_iterable(var):
+    try:
+        iter(var)
+        return var
+    except TypeError:
+        return [var]
+
+
+async def _send_many_pics_msg(old_message, reply_message):
+    reply_msg = Message()
+    has_pic = False
+    for msg in _ensure_iterable(reply_message):
+        if isinstance(msg, LocalAttachment):
+            if has_pic:
+                await old_message.send(reply_msg)
+                reply_msg = Message()
+            has_pic = not has_pic
+        reply_msg += msg
+    await old_message.finish(reply_msg if len(reply_msg) > 0 else None)
 
 
 def _is_console(event: Event) -> bool:
@@ -380,7 +400,7 @@ async def _handle_query_me(event: Event, args=CommandArg()):
             if _is_console(event) and not isinstance(result, str):
                 await _query_me_cmd.finish(result.extract_plain_text())
             else:
-                await _query_me_cmd.finish(result)
+                await _send_many_pics_msg(_query_me_cmd, result)
 
 
 # ---- 查询绑定 QQ号 ----
@@ -438,7 +458,7 @@ async def _handle_query(event: Event, args=CommandArg()):
                 if _is_console(event) and not isinstance(result, str):
                     await _query_cmd.finish(result.extract_plain_text())
                 else:
-                    await _query_cmd.finish(result)
+                    await _send_many_pics_msg(_query_cmd, result)
             return
 
     content = args.extract_plain_text().strip()
@@ -447,7 +467,7 @@ async def _handle_query(event: Event, args=CommandArg()):
         if _is_console(event) and not isinstance(result, str):
             await _query_cmd.finish(result.extract_plain_text())
         else:
-            await _query_cmd.finish(result)
+            await _send_many_pics_msg(_query_cmd, result)
 
 
 # ---- 绑定 ----
@@ -624,7 +644,7 @@ async def _handle_dict_fallback(event: Event):
         return
     msg = build_message(s)
     if msg:
-        await _dict_fallback.finish(msg)
+        await _send_many_pics_msg(_dict_fallback, msg)
 
 
 # ====================== 词条 CRUD ======================
