@@ -94,7 +94,7 @@ async def _send_many_pics_msg(old_message, reply_message):
             if has_pic:
                 await old_message.send(reply_msg)
                 reply_msg = Message()
-            has_pic = not has_pic
+            has_pic = True
         reply_msg += msg
     await old_message.finish(reply_msg if len(reply_msg) > 0 else None)
 
