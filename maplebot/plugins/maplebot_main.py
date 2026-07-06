@@ -750,11 +750,11 @@ async def _notify_scrape_failure():
     # except Exception:
     #     logger.warning("[cron] 无法获取 bot 实例，跳过告警通知")
     #     return
-    # if not isinstance(bot, V11Bot):
+    # if not isinstance(bot, Bot):
     #     return
     # notify_groups = config.get("notify_groups", [])
     # notify_qq = config.get("notify_qq", [])
-    # msg = V11Message(V11Seg.text("角色数据预抓取失败"))
+    # msg = Message(MessageSegment.text("角色数据预抓取失败"))
     # for qq in notify_qq:
     #     msg += V11Seg.at(str(qq))
     # for group in notify_groups:

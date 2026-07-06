@@ -27,7 +27,7 @@ _STAGING_KEEP_DAYS = 7
 
 def serialize_message(msg: Message) -> str:
     """
-    将 OneBot V11 Message 序列化为 JSON 字符串存入词条数据库。
+    将 Message 序列化为 JSON 字符串存入词条数据库。
 
     图片段：下载原图到本地 chat_images/ 缓存，JSON 中只存本地文件路径。
     文本段：直接保留 text。
@@ -102,7 +102,7 @@ def _read_file_bytes(path: str) -> bytes | None:
 
 def deserialize_to_segments(raw: str) -> list[MessageSegment]:
     """
-    将词条 JSON 字符串反序列化为 V11Seg 列表，供发送使用。
+    将词条 JSON 字符串反序列化为 MessageSegment 列表，供发送使用。
 
     图片段：直接取 base64 字段，通过 base64:// 协议发送，兼容 Docker 环境。
     expire_hours 参数保留以兼容调用方，实际不再使用。
@@ -139,7 +139,7 @@ def deserialize_to_segments(raw: str) -> list[MessageSegment]:
             if url:
                 dl = _download_image(url)
                 if dl:
-                    img = _read_file_bytes(dl) or None
+                    img = _read_file_bytes(dl)
                     if img:
                         result.append(MessageSegment.file_image(img))
                     continue
@@ -154,7 +154,7 @@ def deserialize_to_segments(raw: str) -> list[MessageSegment]:
 
 def build_message(raw: str) -> Message | None:
     """
-    反序列化词条并组装成 V11Message。
+    反序列化词条并组装成 Message。
     若词条为空则返回 None。
     """
     segs = deserialize_to_segments(raw)
