@@ -142,7 +142,7 @@ def deserialize_to_segments(raw: str) -> list[MessageSegment]:
                     img = _read_file_bytes(dl)
                     if img:
                         result.append(MessageSegment.file_image(img))
-                    continue
+                        continue
 
             result.append(MessageSegment.text("（找不到图片，请重新编辑词条）"))
 
