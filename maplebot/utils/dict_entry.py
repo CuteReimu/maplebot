@@ -4,6 +4,7 @@ import json
 import os
 import shutil
 import time
+from pathlib import Path
 from typing import Any
 
 import httpx
@@ -129,33 +130,23 @@ def deserialize_to_segments(raw: str) -> list[MessageSegment]:
             # 去掉 file:// 前缀（兼容旧格式）
             local_path = file[len("file://"):] if file.startswith("file://") else file
 
-            img: bytes = b""
             if local_path and os.path.isfile(local_path):
-                img = _read_file_bytes(local_path) or b""
+                result.append(MessageSegment.file_image(Path(local_path)))
+                continue
 
             # 兼容旧格式：有 url 字段，重新下载到本地再转 base64
-            if not img:
-                url: str = data.get("url", "")
-                if url:
-                    dl = _download_image(url)
-                    if dl:
-                        img = _read_file_bytes(dl) or b""
+            url: str = data.get("url", "")
+            if url:
+                dl = _download_image(url)
+                if dl:
+                    img = _read_file_bytes(dl) or None
+                    if img:
+                        result.append(MessageSegment.file_image(img))
+                    continue
 
-            if img:
-                result.append(MessageSegment.file_image(img))
-            else:
-                result.append(MessageSegment.text("（找不到图片，请重新编辑词条）"))
-
-        # elif seg_type == "face":
-            # result.append(MessageSegment.face(int(data.get("id", 0))))
-
-        # elif seg_type == "at":
-        #     result.append(MessageSegment.at(str(data.get("qq", ""))))
+            result.append(MessageSegment.text("（找不到图片，请重新编辑词条）"))
 
         else:
-            # try:
-            #     result.append(V11Seg(seg_type, data))
-            # except Exception:  # pylint: disable=broad-except
             logger.warning(f"无法还原消息段类型 {seg_type}，已跳过")
 
     return result

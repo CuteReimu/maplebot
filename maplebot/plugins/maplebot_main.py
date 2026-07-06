@@ -1,10 +1,10 @@
 """maplebot 主插件 - NoneBot2 命令路由"""
-# pylint: disable=wrong-import-position
+# pylint: disable=wrong-import-position,wrong-import-order,ungrouped-imports
 import os
 import random
 from typing import Any
 
-from nonebot import on_command, on_message, require, get_bot
+from nonebot import on_command, on_message, require
 from nonebot.adapters import Event
 from nonebot.adapters.qq import GroupMessageCreateEvent
 from nonebot.adapters.qq.message import Message, MessageSegment, LocalAttachment
@@ -42,7 +42,7 @@ from maplebot.commands.bonus_bd import calculate_bonus_bd
 from maplebot.commands.bonus_idf import calculate_bonus_idf
 from maplebot.commands.bonus_cd import calculate_bonus_cd
 from maplebot.commands.calculator import calculate_arc_cost, calculate_sac_cost, calculate_hexa_cost
-from maplebot.utils.config import config, qun_db, find_role_data
+from maplebot.utils.config import qun_db, find_role_data
 from maplebot.utils.dict_tfidf import get_familiar_value, add_into_dict
 from maplebot.utils.dict_entry import serialize_message, build_message, cleanup_orphan_images, find_entries_with_missing_images
 
@@ -744,24 +744,24 @@ async def _handle__admin_cmd_del(event: Event, args: Message = CommandArg()):
 # ====================== 定时任务：角色数据预抓取 ======================
 async def _notify_scrape_failure():
     return
-    """抓取失败时向配置的群发送告警并艾特管理员"""
-    try:
-        bot = get_bot()
-    except Exception:
-        logger.warning("[cron] 无法获取 bot 实例，跳过告警通知")
-        return
-    if not isinstance(bot, V11Bot):
-        return
-    notify_groups = config.get("notify_groups", [])
-    notify_qq = config.get("notify_qq", [])
-    msg = V11Message(V11Seg.text("角色数据预抓取失败"))
-    for qq in notify_qq:
-        msg += V11Seg.at(str(qq))
-    for group in notify_groups:
-        try:
-            await bot.send_group_msg(group_id=int(group), message=msg)
-        except Exception as ex:
-            logger.warning(f"[cron] 发送告警通知失败 (group={group}): {ex}")
+    # """抓取失败时向配置的群发送告警并艾特管理员"""
+    # try:
+    #     bot = get_bot()
+    # except Exception:
+    #     logger.warning("[cron] 无法获取 bot 实例，跳过告警通知")
+    #     return
+    # if not isinstance(bot, V11Bot):
+    #     return
+    # notify_groups = config.get("notify_groups", [])
+    # notify_qq = config.get("notify_qq", [])
+    # msg = V11Message(V11Seg.text("角色数据预抓取失败"))
+    # for qq in notify_qq:
+    #     msg += V11Seg.at(str(qq))
+    # for group in notify_groups:
+    #     try:
+    #         await bot.send_group_msg(group_id=int(group), message=msg)
+    #     except Exception as ex:
+    #         logger.warning(f"[cron] 发送告警通知失败 (group={group}): {ex}")
 
 
 async def _cron_find_role():
