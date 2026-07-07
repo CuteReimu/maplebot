@@ -4,10 +4,10 @@ import os
 import random
 from typing import Any
 
-from nonebot import on_command, on_message, require
+from nonebot import on_command, on_message, require, get_bot
 from nonebot.adapters import Event
-from nonebot.adapters.qq import GroupMessageCreateEvent
-from nonebot.adapters.qq.message import Message, MessageSegment, LocalAttachment
+from nonebot.adapters.qq import GroupMessageCreateEvent, Bot
+from nonebot.adapters.qq.message import Message, MessageSegment, LocalAttachment, MentionUser
 from nonebot.log import logger
 from nonebot.params import CommandArg, Command
 from nonebot.rule import Rule
@@ -42,7 +42,7 @@ from maplebot.commands.bonus_bd import calculate_bonus_bd
 from maplebot.commands.bonus_idf import calculate_bonus_idf
 from maplebot.commands.bonus_cd import calculate_bonus_cd
 from maplebot.commands.calculator import calculate_arc_cost, calculate_sac_cost, calculate_hexa_cost
-from maplebot.utils.config import qun_db, find_role_data
+from maplebot.utils.config import qun_db, find_role_data, config
 from maplebot.utils.dict_tfidf import get_familiar_value, add_into_dict
 from maplebot.utils.dict_entry import serialize_message, build_message, cleanup_orphan_images, find_entries_with_missing_images
 
@@ -410,24 +410,23 @@ async def _handle_query_me(event: Event, args=CommandArg()):
                 await _send_many_pics_msg(_query_me_cmd, result)
 
 
-# ---- 查询绑定 QQ号 ----
+# ---- 查询绑定 @某人 ----
 _query_bind_cmd = on_command("查询绑定", force_whitespace=True, priority=10, block=True)
 
 
 @_query_bind_cmd.handle()
-async def _handle_query_bind(args=CommandArg()):
-    content = args.extract_plain_text().strip()
-    if content:
-        try:
-            qq = int(content)
+async def _handle_query_bind(args=CommandArg()):# 处理 "查询@某人" 或 "查询 @某人"（带/不带空格均支持）
+    at_segs = [seg for seg in args if isinstance(seg, MentionUser)]
+    if at_segs:
+        target_qq = at_segs[0].data["user_id"]
+        if target_qq:
             data = find_role_data.get_string_map_string("data")
-            name = data.get(str(qq), "")
+            name = data.get(target_qq, "")
             if name:
                 await _query_bind_cmd.finish(f"该玩家绑定了：{name}")
             else:
                 await _query_bind_cmd.finish("该玩家还未绑定")
-        except ValueError:
-            await _query_bind_cmd.finish("命令格式：查询绑定 QQ号")
+    await _query_bind_cmd.finish("命令格式：查询绑定 @某人")
 
 
 # ---- 查询词条 / 搜索词条 ----
@@ -452,9 +451,9 @@ _query_cmd = on_command("查询", priority=10, block=True)
 @_query_cmd.handle()
 async def _handle_query(event: Event, args=CommandArg()):
     # 处理 "查询@某人" 或 "查询 @某人"（带/不带空格均支持）
-    at_segs = [seg for seg in args if seg.type == "at"]
+    at_segs = [seg for seg in args if isinstance(seg, MentionUser)]
     if at_segs:
-        target_qq = str(at_segs[0].data.get("qq", ""))
+        target_qq = at_segs[0].data["user_id"]
         if target_qq:
             data = find_role_data.get_string_map_string("data")
             name = data.get(target_qq, "")
@@ -743,25 +742,24 @@ async def _handle__admin_cmd_del(event: Event, args: Message = CommandArg()):
 
 # ====================== 定时任务：角色数据预抓取 ======================
 async def _notify_scrape_failure():
-    return
-    # """抓取失败时向配置的群发送告警并艾特管理员"""
-    # try:
-    #     bot = get_bot()
-    # except Exception:
-    #     logger.warning("[cron] 无法获取 bot 实例，跳过告警通知")
-    #     return
-    # if not isinstance(bot, Bot):
-    #     return
-    # notify_groups = config.get("notify_groups", [])
-    # notify_qq = config.get("notify_qq", [])
-    # msg = Message(MessageSegment.text("角色数据预抓取失败"))
-    # for qq in notify_qq:
-    #     msg += V11Seg.at(str(qq))
-    # for group in notify_groups:
-    #     try:
-    #         await bot.send_group_msg(group_id=int(group), message=msg)
-    #     except Exception as ex:
-    #         logger.warning(f"[cron] 发送告警通知失败 (group={group}): {ex}")
+    """抓取失败时向配置的群发送告警并艾特管理员"""
+    try:
+        bot: Bot = get_bot()
+    except Exception:
+        logger.warning("[cron] 无法获取 bot 实例，跳过告警通知")
+        return
+    if not isinstance(bot, Bot):
+        return
+    notify_groups = config.get("notify_groups", [])
+    notify_qq = config.get("notify_qq", [])
+    msg = "角色数据预抓取失败"
+    for qq in notify_qq:
+        msg += f'<qqbot-at-user id="{qq}" />'
+    for group in notify_groups:
+        try:
+            await bot.send_to_group(group_openid=group, message=MessageSegment.markdown(msg))
+        except Exception as ex:
+            logger.warning(f"[cron] 发送告警通知失败 (group={group}): {ex}")
 
 
 async def _cron_find_role():
