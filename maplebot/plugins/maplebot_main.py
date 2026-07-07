@@ -411,7 +411,7 @@ async def _handle_query_me(event: Event, args=CommandArg()):
 
 
 # ---- 查询绑定 @某人 ----
-_query_bind_cmd = on_command("查询绑定", force_whitespace=True, priority=10, block=True)
+_query_bind_cmd = on_command("查询绑定", priority=10, block=True)
 
 
 @_query_bind_cmd.handle()
@@ -716,8 +716,8 @@ async def _handle_admin_cmd_add(event: Event, args: Message = CommandArg()):
     if not _is_super_admin(event):
         await _admin_cmd_add.finish()
     for seg in args:
-        if seg.type in ("mention_user", "at"):
-            target_uid = seg.data.get("user_id", "") or seg.data.get("qq", "")
+        if isinstance(seg, MentionUser):
+            target_uid = seg.data["user_id"]
             if not target_uid:
                 continue
             await _admin_cmd_add.finish("增加管理员成功" if add_admin(target_uid) else "已经是管理员了")
@@ -732,8 +732,8 @@ async def _handle__admin_cmd_del(event: Event, args: Message = CommandArg()):
     if not _is_super_admin(event):
         await _admin_cmd_del.finish()
     for seg in args:
-        if seg.type in ("mention_user", "at"):
-            target_uid = seg.data.get("user_id", "") or seg.data.get("qq", "")
+        if isinstance(seg, MentionUser):
+            target_uid = seg.data["user_id"]
             if not target_uid:
                 continue
             await _admin_cmd_del.finish("删除管理员成功" if del_admin(target_uid) else "不是管理员")
