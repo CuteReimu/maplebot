@@ -752,12 +752,12 @@ async def _notify_scrape_failure():
         return
     notify_groups = config.get("notify_groups", [])
     notify_qq = config.get("notify_qq", [])
-    msg = "角色数据预抓取失败"
+    msg = ["角色数据预抓取失败"]
     for qq in notify_qq:
-        msg += f'<qqbot-at-user id="{qq}" />'
+        msg.append(f'<qqbot-at-user id="{qq}" />')
     for group in notify_groups:
         try:
-            await bot.send_to_group(group_openid=group, message=MessageSegment.markdown(msg))
+            await bot.send_to_group(group_openid=group, message=MessageSegment.markdown("".join(msg)))
         except Exception as ex:
             logger.warning(f"[cron] 发送告警通知失败 (group={group}): {ex}")
 
