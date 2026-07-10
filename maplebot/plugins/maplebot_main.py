@@ -35,7 +35,7 @@ from maplebot.commands.level_exp import (
     calculate_exp_between_level,
     calculate_exp_damage,
 )
-from maplebot.commands.star_force import calculate_star_force, calculate_boom_count
+from maplebot.commands.star_force import calculate_star_force, calculate_boom_count, calculate_star_force_tiers
 from maplebot.commands.slide_puzzle import generate_slide_puzzle_gif
 from maplebot.commands.bonus_att import calculate_bonus_att
 from maplebot.commands.bonus_bd import calculate_bonus_bd
@@ -373,6 +373,14 @@ async def _handle_star_force(cmd: tuple[str, ...] = Command(), args=CommandArg()
     content = args.extract_plain_text().strip()
     if not content:
         await _star_force_cmd.finish("命令格式：\r\n模拟升星 200 0 22\r\n后面可以加：七折、减爆、保护")
+    elif new_kms:
+        tier1, tier4 = calculate_star_force_tiers(new_kms, content)
+        if tier4 is None:
+            await _star_force_cmd.finish(tier1)
+        else:
+            if tier1 is not None:
+                await _star_force_cmd.send(tier1)
+            await _star_force_cmd.finish(tier4)
     else:
         result = calculate_star_force(new_kms, content)
         await _star_force_cmd.finish(result)

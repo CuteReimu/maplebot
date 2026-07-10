@@ -48,6 +48,24 @@ _RATES = [
 _STAR_CAP = {94: 5, 107: 8, 117: 10, 127: 15, 137: 20}
 _STAR_COST_DIVISOR = {10: 40_000, 11: 22_000, 12: 15_000, 13: 11_000, 14: 7_500}
 
+# 防爆等级数据（GMS 服，星数 15-21，tier 索引 = boom_tier - 1）
+_BOOM_TIER_COST_MULT_INCREASE = {
+    15: [0, 0.5, 1.5, 2], 16: [0, 0.5, 1.5, 2], 17: [0, 0.5, 1.5, 2],
+    18: [0, 1, 2.5, 5.5], 19: [0, 1, 2.5, 5.5], 20: [0, 1, 2.5, 5.5], 21: [0, 1, 2.5, 5.5],
+}
+_BOOM_TIER_DESTROY_RATES = {
+    15: [0.0210, 0.0140, 0.0070, 0], 16: [0.0210, 0.0140, 0.0070, 0],
+    17: [0.0680, 0.0425, 0.0170, 0], 18: [0.0680, 0.0440, 0.0180, 0],
+    19: [0.0850, 0.0616, 0.0360, 0], 20: [0.1050, 0.0750, 0.0400, 0],
+    21: [0.1275, 0.0880, 0.0450, 0],
+}
+_BOOM_TIER_SUCCESS_RATES = {
+    15: [0.30, 0.30, 0.30, 0.30], 16: [0.30, 0.30, 0.30, 0.30],
+    17: [0.15, 0.15, 0.15, 0.15], 18: [0.15, 0.12, 0.10, 0.08],
+    19: [0.15, 0.12, 0.10, 0.08], 20: [0.30, 0.25, 0.20, 0.15],
+    21: [0.15, 0.12, 0.10, 0.08],
+}
+
 
 def _get_star_cap(eq_level: int, new_system: bool) -> int:
     cap = 30 if new_system else 25
@@ -68,7 +86,7 @@ def _get_boom_star(cur_star: int, new_system: bool) -> int:
     return 12
 
 
-def _get_meso_cost(cur_star, eq_level, safe_guard=False, discount=False, new_system=False):
+def _get_meso_cost(cur_star, eq_level, safe_guard=False, discount=False, new_system=False, boom_tier=1):
     multiplier = 1
     if discount:
         multiplier -= 0.3
@@ -76,6 +94,8 @@ def _get_meso_cost(cur_star, eq_level, safe_guard=False, discount=False, new_sys
         multiplier += 1
     elif safe_guard and new_system:
         multiplier += 2
+    if boom_tier > 1 and new_system and 15 <= cur_star <= 21:
+        multiplier *= (1 + _BOOM_TIER_COST_MULT_INCREASE[cur_star][boom_tier - 1])
 
     eq10 = eq_level // 10 * 10
     new_sf_mult = 1
@@ -106,15 +126,21 @@ def _get_max_star(new_kms: bool, item_level: int) -> int:
 
 
 # ---------- Markov 链计算 ----------
-def _get_odds_and_inc(i, safe_guard, kms_new, _5_10_15, star_catch, boom_events):
+def _get_odds_and_inc(i, safe_guard, kms_new, _5_10_15, star_catch, boom_events, boom_tier=1):
     upgrade, fail_stay, fail_down, fail_break = _RATES[int(kms_new)][i]
     increment = 1
     if _5_10_15 and i in (5, 10, 15):
         return 1.0, 0.0, 0.0, 0.0, 1
+    if boom_tier > 1 and kms_new and 15 <= i <= 21:
+        tier_idx = boom_tier - 1
+        upgrade = _BOOM_TIER_SUCCESS_RATES[i][tier_idx]
+        fail_break = _BOOM_TIER_DESTROY_RATES[i][tier_idx]
+        fail_stay = 1 - upgrade - fail_down - fail_break
     if star_catch:
+        base_upgrade = upgrade
         upgrade *= 1.05
         upgrade = min(upgrade, 1.0)
-        mult = (1 - upgrade) / (1 - _RATES[int(kms_new)][i][0]) if _RATES[int(kms_new)][i][0] < 1.0 else 0
+        mult = (1 - upgrade) / (1 - base_upgrade) if base_upgrade < 1.0 else 0
         fail_break *= mult
         fail_stay *= mult
         fail_down *= mult
@@ -156,8 +182,8 @@ def _calculate_no_boom_chance(p, init_idx):
 
 
 def _cal_sf(eq_level, init_star, end_star, safe_guard, star_catch,
-            kms_new, discount, _5_10_15, boom_events):
-    """Markov 链精确计算"""
+            kms_new, discount, _5_10_15, boom_events, boom_tier=1):
+    """Markov 链精确计算。boom_tier 可为 int（全局）或 dict[int, int]（按星数指定）"""
     new_system = kms_new
     size = end_star * 2 + 1
     p_arr = np.zeros((size, size))
@@ -168,18 +194,19 @@ def _cal_sf(eq_level, init_star, end_star, safe_guard, star_catch,
     p_arr[end_star * 2, end_star * 2] = 1
 
     for i in range(end_star):
+        tier_i = boom_tier.get(i, 1) if isinstance(boom_tier, dict) else boom_tier
         upgrade, fail_stay, fail_down, fail_break, inc = _get_odds_and_inc(
             i, safe_guard and (
                 (not new_system and i in (15, 16)) or
                 (new_system and i in (15, 16, 17))
-            ), kms_new, _5_10_15, star_catch, boom_events)
+            ), kms_new, _5_10_15, star_catch, boom_events, tier_i)
         _sg = safe_guard and (
             (not new_system and i in (15, 16)) or
             (new_system and i in (15, 16, 17))
         )
         if not new_system and _5_10_15 and i == 15:
             _sg = False
-        cost = _get_meso_cost(i, eq_level, _sg, discount, new_system)
+        cost = _get_meso_cost(i, eq_level, _sg, discount, new_system, tier_i)
 
         a = 2 * i
         # Upgrade
@@ -418,6 +445,12 @@ def calculate_star_force(new_kms: bool, content: str) -> Message | None:
         logger.error(f"计算失败: {e}")
         return Message("计算失败")
 
+    return _build_sf_message(new_kms, item_level, cur, des, bp, to, ftf, be,
+                             mesos, booms, no_boom, taps, midway)
+
+
+def _build_sf_message(new_kms, item_level, cur, des, bp, to, ftf, be,
+                      mesos, booms, no_boom, taps, midway, tier_label="") -> Message:
     # 构建活动说明
     activity = []
     if to:
@@ -432,6 +465,8 @@ def calculate_star_force(new_kms: bool, content: str) -> Message | None:
     if bp:
         s += "（点保护）"
     s += "（GMS新规）" if new_kms else "（GMS旧规）"
+    if tier_label:
+        s += f"（{tier_label}）"
     s += f"\n{cur}-{des}星"
     s += (
         f"，平均花费了{format_int64(int(mesos))}金币"
@@ -478,7 +513,61 @@ def calculate_star_force(new_kms: bool, content: str) -> Message | None:
             except Exception as e:
                 logger.error(f"render chart failed: {e}")
 
-    # 将文字和饼图合并为一条消息
     if pie_img_seg is not None:
         return Message(MessageSegment.text(s) + pie_img_seg)
     return Message(s)
+
+
+def calculate_star_force_tiers(new_kms: bool, content: str) -> tuple[Message | None, Message | None]:
+    """计算防爆等级1和4的升星结果（仅 GMS 新规且范围含 15-21 星时有差异）"""
+    parts = content.split(" ")
+    if len(parts) < 3:
+        return None, None
+    try:
+        item_level = int(parts[0])
+        cur = int(parts[1])
+        des = int(parts[2])
+    except ValueError:
+        err = Message("参数格式不正确")
+        return err, None
+    if item_level < 5 or item_level > 300:
+        err = Message("装备等级不合理")
+        return err, None
+    if cur < 0:
+        err = Message("当前星数不合理")
+        return err, None
+    if des <= cur:
+        err = Message("目标星数必须大于当前星数")
+        return err, None
+    max_star = _get_max_star(new_kms, item_level)
+    if des > max_star:
+        err = Message(f"{item_level}级装备最多升到{max_star}星")
+        return err, None
+
+    bp, to, ftf, be = _parse_flags(content)
+
+    if "1144" in content:
+        try:
+            mesos, booms, no_boom, taps, midway = _cal_sf(
+                item_level, cur, des, bp, True, new_kms, to, ftf, be, {20: 4, 21: 4},
+            )
+        except Exception as e:
+            logger.error(f"计算失败(1144): {e}")
+            return Message("计算失败"), None
+        return _build_sf_message(new_kms, item_level, cur, des, bp, to, ftf, be,
+                                 mesos, booms, no_boom, taps, midway, "1144点法"), None
+
+    results = []
+    for tier in (1, 4):
+        try:
+            mesos, booms, no_boom, taps, midway = _cal_sf(
+                item_level, cur, des, bp, True, new_kms, to, ftf, be, tier,
+            )
+        except Exception as e:
+            logger.error(f"计算失败(tier={tier}): {e}")
+            results.append(Message("计算失败"))
+            continue
+        label = "" if tier == 1 else f"防爆等级{tier}"
+        results.append(_build_sf_message(new_kms, item_level, cur, des, bp, to, ftf, be,
+                                         mesos, booms, no_boom, taps, midway, label))
+    return results[0], results[1]
