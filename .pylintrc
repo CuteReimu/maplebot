@@ -34,8 +34,8 @@ indent-string = '    '
 
 [DESIGN]
 # 函数/方法最大参数数（nonebot handler 参数较多）
-max-args = 10
-max-positional-arguments = 10
+max-args = 15
+max-positional-arguments = 15
 
 # 函数最大局部变量数
 max-locals = 20
