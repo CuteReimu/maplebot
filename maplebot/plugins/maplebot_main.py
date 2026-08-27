@@ -408,7 +408,7 @@ async def handle_cube(args=CommandArg()) -> None:
         ["武器", "上衣", "护肩", "副手"],
         ["腰带", "下衣", "手套", "披风"],
         ["全部", "鞋子", "心脏"],
-    ], type=1)
+    ], button_type=1)
     await _cube_cmd.finish(m)
 
 

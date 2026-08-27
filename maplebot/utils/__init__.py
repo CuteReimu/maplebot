@@ -28,7 +28,7 @@ def input_link(show: str, text: str | None = None) -> str:
 def button_rows(
         btnss: list[list[str]],
         style: int | None = None,
-        type: int | None = None,
+        button_type: int | None = None,
         data: list[list[str]] | None = None,
 ) -> MessageSegment:
     """
@@ -37,7 +37,7 @@ def button_rows(
     Args:
         btnss: 按钮上显示的文字，二维数组，最多 5x5
         style: 按钮样式，0=灰线框, 1=蓝线框, 2=白字, 3=蓝底白字
-        type: - 0：跳转按钮：http 或 小程序
+        button_type: - 0：跳转按钮：http 或 小程序
             - 1：回调按钮：回调后台接口, data 传给后台, 需要使用 :func:`on_button_callback` 注册回调
             - 2：指令按钮：自动在输入框插入 @bot data
         data: 回调数据。type=1/2 时才有用。不填则表示使用对应在 btnss 里的值
@@ -62,7 +62,7 @@ def button_rows(
                     style=style,
                 ),
                 action=Action(
-                    type=type,
+                    type=button_type,
                     permission=Permission(type=2),
                     data=data[i][j] if data is not None else btn,
                 )
@@ -78,7 +78,7 @@ def button_rows(
 def buttons(
         btns: list[str],
         style: int | None = None,
-        type: int | None = None,
+        button_type: int | None = None,
         data: list[str] | None = None,
 ) -> MessageSegment:
     """
@@ -87,10 +87,10 @@ def buttons(
     Args:
         btns: 按钮上显示的文字，每行5个按钮，自动换行，最多5行25个按钮
         style: 按钮样式，0=灰线框, 1=蓝线框, 2=白字, 3=蓝底白字
-        type: - 0：跳转按钮：http 或 小程序
+        button_type: - 0：跳转按钮：http 或 小程序
             - 1：回调按钮：回调后台接口, data 传给后台, 需要使用 :func:`on_button_callback` 注册回调
             - 2：指令按钮：自动在输入框插入 @bot data
-        data: 回调数据。type=1/2 时才有用。不填则表示使用对应在 btnss 里的值
+        data: 回调数据。button_type=1/2 时才有用。不填则表示使用对应在 btnss 里的值
 
     Examples::
         .. code-block:: python
@@ -100,7 +100,7 @@ def buttons(
             m += buttons(["按钮1", "按钮2"], type=2)
     """
     data = None if data is None else [data[i:i + 5] for i in range(0, len(data), 5)]
-    return button_rows([btns[i:i + 5] for i in range(0, len(btns), 5)], style=style, type=type, data=data)
+    return button_rows([btns[i:i + 5] for i in range(0, len(btns), 5)], style=style, button_type=button_type, data=data)
 
 
 def _button_callback_rule(event: Event) -> bool:
