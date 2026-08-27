@@ -7,17 +7,20 @@ from typing import Any
 from nonebot import on_command, on_message, require, get_bot
 from nonebot.adapters import Event
 from nonebot.adapters.qq import GroupMessageCreateEvent, Bot
+from nonebot.adapters.qq import InteractionCreateEvent
 from nonebot.adapters.qq.message import Message, MessageSegment, LocalAttachment, MentionUser
 from nonebot.log import logger
 from nonebot.params import CommandArg, Command
 from nonebot.rule import Rule
 
-from maplebot.utils.perm import is_admin, is_super_admin, add_admin, del_admin, try_init_super_admin
+from ..utils.perm import is_admin, is_super_admin, add_admin, del_admin, try_init_super_admin
+from ..utils import button_rows, on_button_callback
 
 try:
     from nonebot.adapters.console import (
         MessageEvent as ConsoleMessageEvent,
     )
+
     _HAS_CONSOLE = True
 except ImportError:
     ConsoleMessageEvent = None  # type: ignore[assignment, misc]
@@ -44,7 +47,8 @@ from maplebot.commands.bonus_cd import calculate_bonus_cd
 from maplebot.commands.calculator import calculate_arc_cost, calculate_sac_cost, calculate_hexa_cost
 from maplebot.utils.config import qun_db, find_role_data, config
 from maplebot.utils.dict_tfidf import get_familiar_value, add_into_dict
-from maplebot.utils.dict_entry import serialize_message, build_message, cleanup_orphan_images, find_entries_with_missing_images
+from maplebot.utils.dict_entry import serialize_message, build_message, cleanup_orphan_images, \
+    find_entries_with_missing_images
 
 logger.opt(colors=True).info("<green>✅ maplebot_main 插件加载成功！</green>")
 
@@ -302,7 +306,9 @@ async def _handle_bonus_att(event: Event, args=CommandArg()):
 
 
 # ---- BOSS伤害收益 ----
-_bonus_bd_cmd = on_command("BOSS伤害收益", aliases={"B伤收益", "boss伤害收益", "Boss伤害收益", "b伤收益", "BD收益", "bd收益"}, force_whitespace=True, priority=10, block=True)
+_bonus_bd_cmd = on_command("BOSS伤害收益",
+                           aliases={"B伤收益", "boss伤害收益", "Boss伤害收益", "b伤收益", "BD收益", "bd收益"},
+                           force_whitespace=True, priority=10, block=True)
 
 
 @_bonus_bd_cmd.handle()
@@ -391,10 +397,35 @@ _cube_cmd = on_command("洗魔方", force_whitespace=True, priority=10, block=Tr
 
 
 @_cube_cmd.handle()
-async def _handle_cube(args=CommandArg()):
+async def handle_cube(args=CommandArg()) -> None:
     content = args.extract_plain_text().strip()
-    result = calculate_cube_all() if not content else calculate_cube(content)
-    await _cube_cmd.finish(result)
+    if content or content == '全部':
+        await _cube_cmd.finish(calculate_cube(content))
+    m = Message()
+    m += MessageSegment.markdown("请选择洗魔方的种类")
+    m += button_rows([
+        ["首饰", "帽子", "套服", "纹章"],
+        ["武器", "上衣", "护肩", "副手"],
+        ["腰带", "下衣", "手套", "披风"],
+        ["全部", "鞋子", "心脏"],
+    ], type=1)
+    await _cube_cmd.finish(m)
+
+
+cube_button_callback = on_button_callback(priority=10, block=True)
+
+
+@cube_button_callback.handle()
+async def handle_button(bot: Bot, event: InteractionCreateEvent) -> None:
+    # 按钮回调数据：type=1 按钮点击后 QQ 推送的 INTERACTION_CREATE 事件
+    resolved = event.data.resolved
+    button_data = resolved.button_data
+
+    # 必须回执，否则前端按钮会显示「操作失败」。code=0 表示成功
+    await bot.put_interaction(interaction_id=event.id, code=0)
+
+    result = calculate_cube_all() if button_data == "全部" else calculate_cube(button_data)
+    await cube_button_callback.finish(result)
 
 
 # ---- 查询我 ----
@@ -423,7 +454,7 @@ _query_bind_cmd = on_command("查询绑定", priority=10, block=True)
 
 
 @_query_bind_cmd.handle()
-async def _handle_query_bind(args=CommandArg()):# 处理 "查询@某人" 或 "查询 @某人"（带/不带空格均支持）
+async def _handle_query_bind(args=CommandArg()):  # 处理 "查询@某人" 或 "查询 @某人"（带/不带空格均支持）
     at_segs = [seg for seg in args if isinstance(seg, MentionUser)]
     if at_segs:
         target_qq = at_segs[0].data["user_id"]
@@ -607,6 +638,7 @@ async def _handle_arc_calculate(_: Event, args=CommandArg()):
             pass
     await _arc_calculate_cmd.finish("命令格式：\n神秘 初始等级 目标等级， 等级1~20")
 
+
 _sac_calculate_cmd = on_command("原初", force_whitespace=True, priority=10, block=True)
 
 
@@ -624,6 +656,7 @@ async def _handle_sac_calculate(_: Event, args=CommandArg()):
             pass
     await _sac_calculate_cmd.finish("命令格式：\n原初 初始等级 目标等级， 等级1~11")
 
+
 _hexa_calculate_cmd = on_command("六转", force_whitespace=True, priority=10, block=True)
 
 
@@ -640,6 +673,7 @@ async def _handle_hexa_calculate(_: Event, args=CommandArg()):
         except (ValueError, IndexError) as _:
             pass
     await _hexa_calculate_cmd.finish("命令格式：\n六转 技能/精通/强化/通用/通用五转 初始等级 目标等级， 等级0~30")
+
 
 # ====================== 词条模糊匹配（最低优先级） ======================
 _dict_fallback = on_message(priority=20, block=False)
