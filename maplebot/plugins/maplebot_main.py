@@ -419,12 +419,12 @@ cube_button_callback = on_button_callback(priority=10, block=True)
 async def handle_button(bot: Bot, event: InteractionCreateEvent) -> None:
     # 按钮回调数据：type=1 按钮点击后 QQ 推送的 INTERACTION_CREATE 事件
     resolved = event.data.resolved
-    button_data = resolved.button_data
+    data = resolved.button_data
 
     # 必须回执，否则前端按钮会显示「操作失败」。code=0 表示成功
     await bot.put_interaction(interaction_id=event.id, code=0)
 
-    result = calculate_cube_all() if button_data == "全部" else calculate_cube(button_data)
+    result = calculate_cube(data) if data != "全部" and data else calculate_cube_all()
     await cube_button_callback.finish(result)
 
 
