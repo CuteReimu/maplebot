@@ -24,3 +24,5 @@ __pycache__/
 /chat_images/
 /chat_images1/
 player_name.json
+
+build/

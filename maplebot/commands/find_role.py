@@ -16,6 +16,9 @@ from maplebot.utils.class_name import translate_class_name
 from maplebot.utils.config import level_exp_data
 from maplebot.commands.find_role_online import get_online_characters, process_character_data, covert_total_exp_to_level_exp
 
+RED_BAR_IN_T = 15
+UNBELIEVABLE_BAR_IN_T = 100
+
 # ---------- 文件路径 ----------
 _PLAYER_DATA_DIR = "player_data"
 _PLAYER_NAME_FILE = "player_name.json"
@@ -104,6 +107,33 @@ def _days_to_level(dated_exps, current_exp, current_lvl, lvl_single):
 
 
 # ---------- 图表绘制 ----------
+def _add_image_on_bar(bar, image, cmap):
+    x0 = bar.get_x()
+    x1 = x0 + bar.get_width()
+    y0 = bar.get_y()
+    y1 = y0 + bar.get_height()
+
+    image = plt.imshow(
+        image,
+        extent=[x0, x1, y0, y1],
+        origin="lower",
+        aspect="auto",
+        cmap=cmap,
+        interpolation="bicubic",
+    )
+    image.set_clip_path(bar)
+
+
+def _get_rainbow(resolution=300):
+    xx, yy = np.meshgrid(
+        np.linspace(1, 0, resolution),
+        np.linspace(0, 1, resolution)
+    )
+    gradient = (xx + yy * 2) / 3   # bottom-left → top-right color progression
+    cmap = plt.get_cmap("rainbow")
+    return gradient, cmap
+
+
 def _draw_chart(days, dated_exps, dated_lvls) -> bytes:
     """绘制经验图表，返回 base64"""
     t = 1e12
@@ -118,9 +148,13 @@ def _draw_chart(days, dated_exps, dated_lvls) -> bytes:
         else:
             v = val / t
             raw_exps.append(val)
-            if v > 10:
-                bar_values.append(10)
-                colors.append("#ff6b6b")
+            if v > RED_BAR_IN_T:
+                bar_values.append(RED_BAR_IN_T)
+                if v > UNBELIEVABLE_BAR_IN_T:
+                    colors.append("none")
+                else:
+                    colors.append("#ff6b6b")
+                
             elif v < 0.2:
                 bar_values.append(0.2)
                 colors.append("#ffd93b")
@@ -139,10 +173,16 @@ def _draw_chart(days, dated_exps, dated_lvls) -> bytes:
     fig.patch.set_facecolor(bg)
     ax1.set_facecolor(bg)
 
-    ax1.bar(x, bar_values, color=colors, zorder=3)
+    exp_bars = ax1.bar(x, bar_values, color=colors, zorder=3)
+    
+    gradient, cmap = _get_rainbow(300)
+    for i, _bar in enumerate(exp_bars):
+        if colors[i] == "none":
+            _add_image_on_bar(_bar, gradient, cmap)
+            
     ax1.set_xticks(x)
     ax1.set_xticklabels(days, rotation=60, fontsize=10)
-    ax1.set_ylim(0, 10)
+    ax1.set_ylim(0, RED_BAR_IN_T)
     ax1.yaxis.set_major_formatter(plt.FuncFormatter(lambda v, _: f"{v:.0f}T"))
 
     ax2 = ax1.twinx()
@@ -151,7 +191,7 @@ def _draw_chart(days, dated_exps, dated_lvls) -> bytes:
 
     # 溢出标注
     for i, (val, bv) in enumerate(zip(raw_exps, bar_values)):
-        if val / t > 10:
+        if val / t > RED_BAR_IN_T:
             ax1.text(x=i, y=bv + 0.3, s=f"{val/t:.1f}T",
                      ha="center", va="bottom", color="#fff", fontsize=12, zorder=5)
 
@@ -284,7 +324,7 @@ async def find_role(name: str) -> Message | str:
     """查询角色信息，优先本地数据，失败则请求 API"""
     # 1. 尝试本地数据
     local, days = await _try_local(name)
-    if local and days > 7:  # 本地数据存在且够多, 优先使用本地数据
+    if local and days > 14:  # 本地数据存在且够多, 优先使用本地数据
         return local
 
     online, _ = await _try_online(name)
