@@ -14,7 +14,7 @@ from nonebot.params import CommandArg, Command
 from nonebot.rule import Rule
 
 from ..utils.perm import is_admin, is_super_admin, add_admin, del_admin, try_init_super_admin
-from ..utils import button_rows, on_button_callback
+from ..utils import button_rows, buttons, on_button_callback
 
 try:
     from nonebot.adapters.console import (
@@ -44,7 +44,7 @@ from maplebot.commands.bonus_att import calculate_bonus_att
 from maplebot.commands.bonus_bd import calculate_bonus_bd
 from maplebot.commands.bonus_idf import calculate_bonus_idf
 from maplebot.commands.bonus_cd import calculate_bonus_cd
-from maplebot.commands.calculator import calculate_arc_cost, calculate_sac_cost, calculate_hexa_cost
+from maplebot.commands.calculator import calculate_arc_cost, calculate_sac_cost, calculate_hexa_cost, parse_hexa_progress_input, calculate_hexa_progress, HEXA_SAMPLE_INPUT
 from maplebot.utils.config import qun_db, find_role_data, config
 from maplebot.utils.dict_tfidf import get_familiar_value, add_into_dict
 from maplebot.utils.dict_entry import serialize_message, build_message, cleanup_orphan_images, \
@@ -676,6 +676,34 @@ async def _handle_hexa_calculate(_: Event, args=CommandArg()):
         except (ValueError, IndexError) as _:
             pass
     await _hexa_calculate_cmd.finish("命令格式：\n六转 技能/精通/强化/通用/通用五转 初始等级 目标等级， 等级0~30")
+
+
+# ====================== 六转进度计算 ======================
+_hexa_progress_cmd = on_command("计算六转进度", force_whitespace=True, priority=10, block=True)
+
+
+@_hexa_progress_cmd.handle()
+async def _handle_hexa_progress(_: Event, args=CommandArg()):
+    content = args.extract_plain_text().strip()
+    if content:
+        try:
+            hexa_dict = parse_hexa_progress_input(content)
+            result = calculate_hexa_progress(hexa_dict)
+            await _hexa_progress_cmd.finish(result)
+            return
+        except (ValueError, IndexError) as _:
+            pass
+    await _hexa_progress_cmd.finish('输入“六转进度"进行计算')
+
+
+_hexa_sample_input_cmd = on_command("六转进度", force_whitespace=True, priority=10, block=True)
+
+@_hexa_sample_input_cmd.handle()
+async def _handle_hexa_sample_input(_: Event, __=CommandArg()):
+    m = Message()
+    m += MessageSegment.markdown("点击下方按钮并修改后发送即可，不需加入计算的将目标改为0")
+    m += buttons(["开始计算"], button_type=2, data=HEXA_SAMPLE_INPUT)
+    await _hexa_sample_input_cmd.finish(m)
 
 
 # ====================== 词条模糊匹配（最低优先级） ======================

@@ -275,3 +275,104 @@ def calculate_hexa_cost(hexa_type: str, start: int = 0, end: int = 30) -> str:
     else:
         msg = f"{hexa_type}核心 {start} 级到 {end}级 需要：{erda} 大核 {fragment} 小核"
     return msg
+
+
+HEXA_SAMPLE_INPUT = """计算六转进度 #修改后直接发送
+[技能H1]      目标 30 / 当前 0
+[技能H2]      目标 30 / 当前 0
+[精通1]       目标 30 / 当前 0
+[精通2]       目标 30 / 当前 0
+[精通3]       目标 30 / 当前 0
+[精通4]       目标 30 / 当前 0
+[V强化1]      目标 30 / 当前 0
+[V强化2]      目标 30 / 当前 0
+[V强化3]      目标 30 / 当前 0
+[V强化4]      目标 30 / 当前 0
+[通用1]       目标 30 / 当前 0
+[通用2]       目标 30 / 当前 0
+[通用3(五转)] 目标 30 / 当前 0
+"""
+
+
+def parse_hexa_progress_input(input_str: str) -> dict[str, list[int]]:
+    """解析六转进度输入字符串，返回字典"""
+    hexa_dict = {}
+    input_str = input_str.replace("---", "\n")
+    lines = input_str.strip().split("\n")
+    for line in lines:
+        if ']' not in line:
+            continue
+        parts = line.split(']')
+        _name = parts[0].split('[')[-1].strip()
+        if "技能" in _name:
+            name = "技能"
+        elif "精通" in _name:
+            name = "精通"
+        elif "强化" in _name:
+            name = "强化"
+        elif "通用" in _name:
+            name = "通用"
+            if "五转" in _name:
+                name = "通用五转"
+        else:
+            raise ValueError(f"Unknown hexa name: {_name}")
+
+        if name not in hexa_dict:
+            hexa_dict[name] = []
+
+        def _parse(s):
+            digits =  "".join(c for c in s if c.isdigit())
+            if digits == "":
+                raise ValueError(f"Wrong input {s}")
+            return int(digits)
+
+        goal, current = parts[1].split("/")
+        goal, current = _parse(goal), _parse(current)
+
+        hexa_dict[name].append([current, goal])
+    return hexa_dict
+
+
+def calculate_hexa_progress(hexa_dict: dict[str, list[int]]) -> str:
+    """计算六转各类型核心的进度"""
+    total_costs = [0, 0]
+    current_spent = [0, 0]
+    substrings = []
+
+    def divPer(num1, num2):
+        if num2 == 0 or num1 == num2:
+            return "100%"
+        return f"{num1 / num2 * 100:.1f}%"
+
+    for hexa_type, levels in hexa_dict.items():
+        if hexa_type not in ["技能", "精通", "强化", "通用", "通用五转"]:
+            raise ValueError(f"Unknown hexa type: {hexa_type}")
+        idx = ["技能", "精通", "强化", "通用", "通用五转"].index(hexa_type)
+        for i, level in enumerate(levels):
+            current, goal = level
+            if current > goal:
+                continue
+            erda_current, fragment_current = get_culmulative_cost(
+                f"hexa_{['skill', 'mastery', 'boost', 'common', 'common_5th'][idx]}", 
+                0,
+                current
+            )
+            erda_goal, fragment_goal = get_culmulative_cost(
+                f"hexa_{['skill', 'mastery', 'boost', 'common', 'common_5th'][idx]}", 
+                0,
+                goal
+            )
+            total_costs[0] += erda_goal
+            total_costs[1] += fragment_goal
+            current_spent[0] += erda_current
+            current_spent[1] += fragment_current
+            substrings.append(f"{hexa_type}{i+1} {current}/{goal}: {erda_current}/{erda_goal}大核({divPer(erda_current, erda_goal)}) {fragment_current}/{fragment_goal}小核({divPer(fragment_current, fragment_goal)})")
+        substrings.append('')
+    if total_costs[0] == 0 and total_costs[1] == 0:
+        return "没有追求的人查什么进度"
+    msg = f"总需求：{total_costs[0]} 大核 {total_costs[1]} 小核\n" + \
+          f"已消耗：{current_spent[0]} 大核 {current_spent[1]} 小核\n" + \
+          f"剩余：{total_costs[0] - current_spent[0]} 大核 {total_costs[1] - current_spent[1]} 小核\n" + \
+          f"总进度： {divPer(current_spent[0], total_costs[0])}大核, {divPer(current_spent[1], total_costs[1])}小核\n" + \
+          "详细进度：\n    " + "\n    ".join(substrings)
+    return msg
