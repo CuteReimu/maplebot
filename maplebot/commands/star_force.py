@@ -454,24 +454,28 @@ def _build_sf_message(new_kms, item_level, cur, des, bp, to, ftf, be,
     # 构建活动说明
     activity = []
     if to:
-        activity.append("七折活动")
+        activity.append(" 七折活动 ")
     if ftf:
-        activity.append("5/10/15必成活动")
+        activity.append(" 5/10/15必成活动 ")
     if be:
-        activity.append("减爆活动")
-    act_str = ("在" + "和".join(activity) + "中") if activity else ""
+        activity.append(" 减爆活动 ")
+    act_str = ("、".join(activity) + "时") if activity else "无活动时 "
 
-    s = f"{act_str}模拟升星{item_level}级装备"
+    s = f"{item_level}级装备{cur}-{des}星，{act_str}"
     if bp:
-        s += "（点保护）"
-    s += "（GMS新规）" if new_kms else "（GMS旧规）"
+        s += "（15~18保护）"
+    else:
+        s += "（15~18不保护）"
+    s += "" if new_kms else "（GMS旧规）"
     if tier_label:
         s += f"（{tier_label}）"
-    s += f"\n{cur}-{des}星"
+    else:
+        s += "（1111）"
+    s += "\n"
     s += (
-        f"，平均花费了{format_int64(int(mesos))}金币"
-        f"，平均炸了{booms:.2f}次"
-        f"，平均点了{int(round(taps))}次"
+        f"平均花了{format_int64(int(mesos))}金币"
+        f"，炸了{booms:.2f}次"
+        f"，点了{int(round(taps))}次"
         f"，有{no_boom * 100:.2f}%的概率一次都不炸"
     )
 
@@ -546,16 +550,31 @@ def calculate_star_force_tiers(new_kms: bool, content: str) -> tuple[Message | N
 
     bp, to, ftf, be = _parse_flags(content)
 
-    if "1144" in content:
+    tier_dict = None
+    tier_text = next(
+        (s for s in parts if len(s) == 4 and all(c in "1234" for c in s)),
+        None,
+    )
+    if tier_text is not None:
+        tier_dict = {i + 18: int(c) for i, c in enumerate(tier_text)}
+
+    full_tier_text = next(
+        (s for s in parts if len(s) == 7 and all(c in "1234" for c in s)),
+        None,
+    )
+    if full_tier_text is not None:
+        tier_dict = {i + 15: int(c) for i, c in enumerate(full_tier_text)}
+
+    if tier_text is not None:
         try:
             mesos, booms, no_boom, taps, midway = _cal_sf(
-                item_level, cur, des, bp, True, new_kms, to, ftf, be, {20: 4, 21: 4},
+                item_level, cur, des, bp, True, new_kms, to, ftf, be, tier_dict,
             )
         except Exception as e:
-            logger.error(f"计算失败(1144): {e}")
+            logger.error(f"计算失败(tier_text): {e}")
             return Message("计算失败"), None
         return _build_sf_message(new_kms, item_level, cur, des, bp, to, ftf, be,
-                                 mesos, booms, no_boom, taps, midway, "1144点法"), None
+                                 mesos, booms, no_boom, taps, midway, tier_text), None
 
     results = []
     for tier in (1, 4):
@@ -567,7 +586,7 @@ def calculate_star_force_tiers(new_kms: bool, content: str) -> tuple[Message | N
             logger.error(f"计算失败(tier={tier}): {e}")
             results.append(Message("计算失败"))
             continue
-        label = "" if tier == 1 else f"防爆等级{tier}"
+        label = "" if tier == 1 else f"{tier}{tier}{tier}{tier}"
         results.append(_build_sf_message(new_kms, item_level, cur, des, bp, to, ftf, be,
                                          mesos, booms, no_boom, taps, midway, label))
     return results[0], results[1]
