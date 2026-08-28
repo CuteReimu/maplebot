@@ -107,11 +107,11 @@ def _days_to_level(dated_exps, current_exp, current_lvl, lvl_single):
 
 
 # ---------- 图表绘制 ----------
-def _add_image_on_bar(bar, image, cmap=None):
-    x0 = bar.get_x()
-    x1 = x0 + bar.get_width()
-    y0 = bar.get_y()
-    y1 = y0 + bar.get_height()
+def _add_image_on_bar(_bar, image, cmap=None):
+    x0 = _bar.get_x()
+    x1 = x0 + _bar.get_width()
+    y0 = _bar.get_y()
+    y1 = y0 + _bar.get_height()
 
     image = plt.imshow(
         image,
@@ -122,7 +122,7 @@ def _add_image_on_bar(bar, image, cmap=None):
         interpolation="bicubic",
         zorder=3
     )
-    image.set_clip_path(bar)
+    image.set_clip_path(_bar)
 
 
 def _draw_chart(days, dated_exps, dated_lvls) -> bytes:
@@ -145,7 +145,7 @@ def _draw_chart(days, dated_exps, dated_lvls) -> bytes:
                     colors.append("none")
                 else:
                     colors.append("#ff6b6b")
-                
+
             elif v < 0.2:
                 bar_values.append(0.2)
                 colors.append("#ffd93b")
@@ -165,12 +165,12 @@ def _draw_chart(days, dated_exps, dated_lvls) -> bytes:
     ax1.set_facecolor(bg)
 
     exp_bars = ax1.bar(x, bar_values, color=colors, zorder=3)
-    
+
     texture = plt.imread("maplebot/data/rainbow_texture.png")
     for i, _bar in enumerate(exp_bars):
         if colors[i] == "none":
             _add_image_on_bar(_bar, texture)
-            
+
     ax1.set_xticks(x)
     ax1.set_xticklabels(days, rotation=60, fontsize=10)
     ax1.set_ylim(0, RED_BAR_IN_T)

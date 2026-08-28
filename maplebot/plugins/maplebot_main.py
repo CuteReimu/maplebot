@@ -374,11 +374,12 @@ _star_force_cmd = on_command(
 
 @_star_force_cmd.handle()
 async def _handle_star_force(cmd: tuple[str, ...] = Command(), args=CommandArg()):
+    HELP_STR = "命令格式：\r\n模拟升星 200 0 22\r\n后面可以加：七折、减爆、保护、超爆、1144或1132244"
     cmd_name = cmd[0]
     new_kms = not cmd_name.endswith("旧")
     content = args.extract_plain_text().strip()
     if not content:
-        await _star_force_cmd.finish("命令格式：\r\n模拟升星 200 0 22\r\n后面可以加：七折、减爆、保护")
+        await _star_force_cmd.finish(HELP_STR)
     elif new_kms:
         tier1, tier4 = calculate_star_force_tiers(new_kms, content)
         if tier4 is None:
@@ -386,6 +387,8 @@ async def _handle_star_force(cmd: tuple[str, ...] = Command(), args=CommandArg()
         else:
             if tier1 is not None:
                 await _star_force_cmd.send(tier1)
+            else:
+                await _star_force_cmd.finish(HELP_STR)
             await _star_force_cmd.finish(tier4)
     else:
         result = calculate_star_force(new_kms, content)
