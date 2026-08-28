@@ -107,7 +107,7 @@ def _days_to_level(dated_exps, current_exp, current_lvl, lvl_single):
 
 
 # ---------- 图表绘制 ----------
-def _add_image_on_bar(bar, image, cmap):
+def _add_image_on_bar(bar, image, cmap=None):
     x0 = bar.get_x()
     x1 = x0 + bar.get_width()
     y0 = bar.get_y()
@@ -120,18 +120,9 @@ def _add_image_on_bar(bar, image, cmap):
         aspect="auto",
         cmap=cmap,
         interpolation="bicubic",
+        zorder=3
     )
     image.set_clip_path(bar)
-
-
-def _get_rainbow(resolution=300):
-    xx, yy = np.meshgrid(
-        np.linspace(1, 0, resolution),
-        np.linspace(0, 1, resolution)
-    )
-    gradient = (xx + yy * 2) / 3   # bottom-left → top-right color progression
-    cmap = plt.get_cmap("rainbow")
-    return gradient, cmap
 
 
 def _draw_chart(days, dated_exps, dated_lvls) -> bytes:
@@ -175,10 +166,10 @@ def _draw_chart(days, dated_exps, dated_lvls) -> bytes:
 
     exp_bars = ax1.bar(x, bar_values, color=colors, zorder=3)
     
-    gradient, cmap = _get_rainbow(300)
+    texture = plt.imread("maplebot/data/rainbow_texture.png")
     for i, _bar in enumerate(exp_bars):
         if colors[i] == "none":
-            _add_image_on_bar(_bar, gradient, cmap)
+            _add_image_on_bar(_bar, texture)
             
     ax1.set_xticks(x)
     ax1.set_xticklabels(days, rotation=60, fontsize=10)
@@ -207,6 +198,7 @@ def _draw_chart(days, dated_exps, dated_lvls) -> bytes:
     ax1.spines["bottom"].set_color("#20253a")
 
     buf = io.BytesIO()
+    # plt.savefig("1.png", format="png", bbox_inches="tight")
     plt.savefig(buf, format="png", bbox_inches="tight")
     plt.close(fig)
     return buf.getvalue()

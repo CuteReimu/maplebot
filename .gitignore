@@ -6,6 +6,7 @@
 .idea/
 .vscode/
 *.png
+!maplebot/data/rainbow_texture.png
 *.ttf
 *.gif
 *.ipynb
