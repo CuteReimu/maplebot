@@ -340,7 +340,7 @@ def calculate_hexa_progress(hexa_dict: dict[str, list[int]]) -> str:
     md_lines = []
 
     def div_per(num1, num2):
-        if num2 in (0, num1):
+        if num2 == 0 or num1 >= num2:
             return "100%"
         return f"{num1 / num2 * 100:.1f}%"
 
@@ -357,8 +357,6 @@ def calculate_hexa_progress(hexa_dict: dict[str, list[int]]) -> str:
 
         for i, level in enumerate(levels):
             current, goal = level
-            if current > goal:
-                continue
             erda_current, fragment_current = get_culmulative_cost(
                 f"hexa_{['skill', 'mastery', 'boost', 'common', 'common_5th'][idx]}",
                 0,
