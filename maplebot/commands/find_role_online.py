@@ -61,7 +61,7 @@ async def process_character_data(data: dict) -> dict | None:
         job = character['job']
         img_url = character['imageUrl']
         if "http" in img_url:
-            img_url = img_url
+            img_url = img_url # pylint: disable=self-assigning-variable 预留，方便以后改
         else:
             img_url = f"https://cdn.maplebot.io{img_url}"
         exp_history = json_data['data']['expHistory'][-BUFFER_SIZE:]

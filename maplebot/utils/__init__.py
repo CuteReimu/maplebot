@@ -8,9 +8,9 @@ from nonebot.adapters.qq.models.common import MessageKeyboard, InlineKeyboard, I
 from nonebot.rule import Rule
 
 
-def at_user(id: str) -> str:
+def at_user(user_id: str) -> str:
     """艾特某人，只能在markdown类型消息中使用"""
-    return f'<qqbot-at-user id="{id}" />'
+    return f'<qqbot-at-user id="{user_id}" />'
 
 
 def input_link(show: str, text: str | None = None) -> str:
