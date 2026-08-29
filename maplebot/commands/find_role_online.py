@@ -60,7 +60,10 @@ async def process_character_data(data: dict) -> dict | None:
         name = character['name']
         job = character['job']
         img_url = character['imageUrl']
-        img_url = f"https://cdn.maplebot.io{img_url}"
+        if "http" in img_url:
+            img_url = img_url
+        else:
+            img_url = f"https://cdn.maplebot.io{img_url}"
         exp_history = json_data['data']['expHistory'][-BUFFER_SIZE:]
         legion = character.get('legion', {}).get('level', 0)
         img = await get_character_img(img_url, name)
@@ -102,7 +105,7 @@ async def get_character_img(img_url: str, player_name: str = None) -> str:
             logger.warning(f"URL for {player_name} does not point to an image, content type: {content_type}")
     except Exception as e:
         img64 = ""
-        logger.warning(f"Error fetching image for {player_name}: {e}")
+        logger.warning(f"Error fetching image for {player_name}: {e}, requested URL: {img_url}")
     return img64
 
 
