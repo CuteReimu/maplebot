@@ -47,6 +47,7 @@ async def get_online_characters(character_name: str, sever: str = "NA") -> dict 
 
 # ---------- 整理数据 ----------
 async def process_character_data(data: dict) -> dict | None:
+    name = ''
     try:
         if data is None or 'encrypted' not in data:
             return None

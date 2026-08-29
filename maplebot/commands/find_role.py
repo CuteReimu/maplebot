@@ -115,7 +115,7 @@ def _add_image_on_bar(_bar, image, cmap=None):
 
     image = plt.imshow(
         image,
-        extent=[x0, x1, y0, y1],
+        extent=(x0, x1, y0, y1),
         origin="lower",
         aspect="auto",
         cmap=cmap,
@@ -229,7 +229,7 @@ async def _process_player_data(name: str) -> dict:
     return player_dict
 
 
-async def _try_local(name: str) -> Message | None:
+async def _try_local(name: str) -> tuple[Message | None, int]:
     """从本地数据生成回复"""
     player_dict = await _process_player_data(name)
     if not player_dict:
@@ -239,7 +239,7 @@ async def _try_local(name: str) -> Message | None:
 
 
 # ---------- 从在线接口获取数据并生成回复 ----------
-async def _try_online(name: str, server: str = 'NA') -> Message | None:
+async def _try_online(name: str, server: str = 'NA') -> tuple[Message | None, int]:
     name = _try_encode_gb2312(name)
     data = await get_online_characters(name, server)
     if not data:
@@ -252,7 +252,7 @@ async def _try_online(name: str, server: str = 'NA') -> Message | None:
     return generate_message_from_player_dict(player_dict, convert_exp=True)
 
 
-def generate_message_from_player_dict(player_dict: dict, convert_exp: bool = False) -> Message:
+def generate_message_from_player_dict(player_dict: dict, convert_exp: bool = False) -> tuple[Message, int]:
     lvl_single: dict[str, int] = {}
     lvl_culm: dict[str, int] = {}
     acc = 0

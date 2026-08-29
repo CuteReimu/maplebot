@@ -1,3 +1,5 @@
 include bot.py
 include .env
 include start.sh
+include maplebot/data/cubeRates.json
+include maplebot/data/rainbow_texture.png
