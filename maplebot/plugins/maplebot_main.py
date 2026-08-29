@@ -6,7 +6,7 @@ from typing import Any
 
 from nonebot import on_command, on_message, require, get_bot
 from nonebot.adapters import Event
-from nonebot.adapters.qq import GroupMessageCreateEvent, Bot
+from nonebot.adapters.qq import GroupMessageCreateEvent, Bot, C2CMessageCreateEvent
 from nonebot.adapters.qq import InteractionCreateEvent
 from nonebot.adapters.qq.message import Message, MessageSegment, LocalAttachment, MentionUser
 from nonebot.log import logger
@@ -689,7 +689,9 @@ async def _handle_hexa_progress(event: Event, args=CommandArg()):
         try:
             hexa_dict = parse_hexa_progress_input(content)
             result = calculate_hexa_progress(hexa_dict)
-            result = MessageSegment.markdown(at_user(event.get_user_id()) + result)
+            if not isinstance(event, C2CMessageCreateEvent):
+                result = at_user(event.get_user_id()) + result
+            result = MessageSegment.markdown(result)
             await _hexa_progress_cmd.finish(result)
             return
         except (ValueError, IndexError) as _:
