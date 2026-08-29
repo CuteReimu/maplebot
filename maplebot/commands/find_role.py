@@ -316,7 +316,7 @@ async def find_role(name: str) -> Message | str:
     """查询角色信息，优先本地数据，失败则请求 API"""
     # 1. 尝试本地数据
     local, days = await _try_local(name)
-    if local and days > 14:  # 本地数据存在且够多, 优先使用本地数据
+    if local and days >= 7:  # 本地数据存在且够多, 优先使用本地数据
         return local
 
     online, _ = await _try_online(name)
