@@ -374,12 +374,12 @@ _star_force_cmd = on_command(
 
 @_star_force_cmd.handle()
 async def _handle_star_force(cmd: tuple[str, ...] = Command(), args=CommandArg()):
-    HELP_STR = "命令格式：\r\n模拟升星 200 0 22\r\n后面可以加：七折、减爆、保护、超爆、1144或1132244"
+    help_str = "命令格式：\r\n模拟升星 200 0 22\r\n后面可以加：七折、减爆、保护、超爆、1144或1132244"
     cmd_name = cmd[0]
     new_kms = not cmd_name.endswith("旧")
     content = args.extract_plain_text().strip()
     if not content:
-        await _star_force_cmd.finish(HELP_STR)
+        await _star_force_cmd.finish(help_str)
     elif new_kms:
         tier1, tier4 = calculate_star_force_tiers(new_kms, content)
         if tier4 is None:
@@ -388,7 +388,7 @@ async def _handle_star_force(cmd: tuple[str, ...] = Command(), args=CommandArg()
             if tier1 is not None:
                 await _star_force_cmd.send(tier1)
             else:
-                await _star_force_cmd.finish(HELP_STR)
+                await _star_force_cmd.finish(help_str)
             await _star_force_cmd.finish(tier4)
     else:
         result = calculate_star_force(new_kms, content)
@@ -702,7 +702,7 @@ _hexa_sample_input_cmd = on_command("六转进度", force_whitespace=True, prior
 async def _handle_hexa_sample_input(_: Event, __=CommandArg()):
     m = Message()
     m += MessageSegment.markdown("点击下方按钮并修改后发送即可，不需加入计算的将目标改为0")
-    m += buttons(["开始计算"], button_type=2, data=HEXA_SAMPLE_INPUT)
+    m += buttons(["开始计算"], button_type=2, data=[HEXA_SAMPLE_INPUT])
     await _hexa_sample_input_cmd.finish(m)
 
 

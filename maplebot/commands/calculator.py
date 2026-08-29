@@ -339,8 +339,8 @@ def calculate_hexa_progress(hexa_dict: dict[str, list[int]]) -> str:
     current_spent = [0, 0]
     substrings = []
 
-    def divPer(num1, num2):
-        if num2 == 0 or num1 == num2:
+    def div_per(num1, num2):
+        if num2 in (0, num1):
             return "100%"
         return f"{num1 / num2 * 100:.1f}%"
 
@@ -353,12 +353,12 @@ def calculate_hexa_progress(hexa_dict: dict[str, list[int]]) -> str:
             if current > goal:
                 continue
             erda_current, fragment_current = get_culmulative_cost(
-                f"hexa_{['skill', 'mastery', 'boost', 'common', 'common_5th'][idx]}", 
+                f"hexa_{['skill', 'mastery', 'boost', 'common', 'common_5th'][idx]}",
                 0,
                 current
             )
             erda_goal, fragment_goal = get_culmulative_cost(
-                f"hexa_{['skill', 'mastery', 'boost', 'common', 'common_5th'][idx]}", 
+                f"hexa_{['skill', 'mastery', 'boost', 'common', 'common_5th'][idx]}",
                 0,
                 goal
             )
@@ -366,13 +366,13 @@ def calculate_hexa_progress(hexa_dict: dict[str, list[int]]) -> str:
             total_costs[1] += fragment_goal
             current_spent[0] += erda_current
             current_spent[1] += fragment_current
-            substrings.append(f"{hexa_type}{i+1} {current}/{goal}: {erda_current}/{erda_goal}大核({divPer(erda_current, erda_goal)}) {fragment_current}/{fragment_goal}小核({divPer(fragment_current, fragment_goal)})")
+            substrings.append(f"{hexa_type}{i+1} {current}/{goal}: {erda_current}/{erda_goal}大核({div_per(erda_current, erda_goal)}) {fragment_current}/{fragment_goal}小核({div_per(fragment_current, fragment_goal)})")
         substrings.append('')
     if total_costs[0] == 0 and total_costs[1] == 0:
         return "没有追求的人查什么进度"
     msg = f"总需求：{total_costs[0]} 大核 {total_costs[1]} 小核\n" + \
           f"已消耗：{current_spent[0]} 大核 {current_spent[1]} 小核\n" + \
           f"剩余：{total_costs[0] - current_spent[0]} 大核 {total_costs[1] - current_spent[1]} 小核\n" + \
-          f"总进度： {divPer(current_spent[0], total_costs[0])}大核, {divPer(current_spent[1], total_costs[1])}小核\n" + \
+          f"总进度： {div_per(current_spent[0], total_costs[0])}大核, {div_per(current_spent[1], total_costs[1])}小核\n" + \
           "详细进度：\n    " + "\n    ".join(substrings)
     return msg
