@@ -689,6 +689,7 @@ async def _handle_hexa_progress(_: Event, args=CommandArg()):
         try:
             hexa_dict = parse_hexa_progress_input(content)
             result = calculate_hexa_progress(hexa_dict)
+            result = MessageSegment.markdown(result)
             await _hexa_progress_cmd.finish(result)
             return
         except (ValueError, IndexError) as _:

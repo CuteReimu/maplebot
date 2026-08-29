@@ -337,17 +337,24 @@ def calculate_hexa_progress(hexa_dict: dict[str, list[int]]) -> str:
     """计算六转各类型核心的进度"""
     total_costs = [0, 0]
     current_spent = [0, 0]
-    substrings = []
+    md_lines = []
 
     def div_per(num1, num2):
         if num2 in (0, num1):
             return "100%"
         return f"{num1 / num2 * 100:.1f}%"
 
+    md_lines.append("详细进度\n")
+    md_lines.append("|  | 等级 | 大核 | 小核 |")
+    md_lines.append("|---|---:|---:|---:|")
     for hexa_type, levels in hexa_dict.items():
         if hexa_type not in ["技能", "精通", "强化", "通用", "通用五转"]:
             raise ValueError(f"Unknown hexa type: {hexa_type}")
         idx = ["技能", "精通", "强化", "通用", "通用五转"].index(hexa_type)
+        if hexa_type != "通用五转":
+            hexa_text = {"技能": "技能H", "精通": "精通", "强化": "V强化", "通用": "通用"}
+            md_lines.append(f"|**{hexa_text[hexa_type]}**|  |  |  |")
+
         for i, level in enumerate(levels):
             current, goal = level
             if current > goal:
@@ -366,13 +373,25 @@ def calculate_hexa_progress(hexa_dict: dict[str, list[int]]) -> str:
             total_costs[1] += fragment_goal
             current_spent[0] += erda_current
             current_spent[1] += fragment_current
-            substrings.append(f"{hexa_type}{i+1} {current}/{goal}: {erda_current}/{erda_goal}大核({div_per(erda_current, erda_goal)}) {fragment_current}/{fragment_goal}小核({div_per(fragment_current, fragment_goal)})")
-        substrings.append('')
+            skill_num = i + 1 if hexa_type != "通用五转" else 3
+            md_lines.append(f"|{skill_num}|"+
+                            f"{current}/{goal}|"+
+                            f"{erda_current}/{erda_goal}({div_per(erda_current, erda_goal)})|"+
+                            f"{fragment_current}/{fragment_goal}({div_per(fragment_current, fragment_goal)})|"
+                            )
+
     if total_costs[0] == 0 and total_costs[1] == 0:
         return "没有追求的人查什么进度"
-    msg = f"总需求：{total_costs[0]} 大核 {total_costs[1]} 小核\n" + \
-          f"已消耗：{current_spent[0]} 大核 {current_spent[1]} 小核\n" + \
-          f"剩余：{total_costs[0] - current_spent[0]} 大核 {total_costs[1] - current_spent[1]} 小核\n" + \
-          f"总进度： {div_per(current_spent[0], total_costs[0])}大核, {div_per(current_spent[1], total_costs[1])}小核\n" + \
-          "详细进度：\n    " + "\n    ".join(substrings)
+
+    header_md_lines = []
+    header_md_lines.append("总进度\n")
+    header_md_lines.append("|  | 大核 | 小核 |")
+    header_md_lines.append("|---|---:|---:|")
+    header_md_lines.append(f"|总需|{total_costs[0]}|{total_costs[1]}|")
+    header_md_lines.append(f"|已用|{current_spent[0]}|{current_spent[1]}|")
+    header_md_lines.append(f"|仍需|{total_costs[0] - current_spent[0]}|{total_costs[1] - current_spent[1]}|")
+    header_md_lines.append(f"|进度|{div_per(current_spent[0], total_costs[0])}|{div_per(current_spent[1], total_costs[1])}|")
+    header_md_lines.append("")
+
+    msg = "\n".join(header_md_lines + md_lines)
     return msg
