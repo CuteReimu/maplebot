@@ -14,7 +14,7 @@ from nonebot.params import CommandArg, Command
 from nonebot.rule import Rule
 
 from ..utils.perm import is_admin, is_super_admin, add_admin, del_admin, try_init_super_admin
-from ..utils import button_rows, buttons, on_button_callback
+from ..utils import at_user, button_rows, buttons, on_button_callback
 
 try:
     from nonebot.adapters.console import (
@@ -683,13 +683,13 @@ _hexa_progress_cmd = on_command("计算六转进度", force_whitespace=True, pri
 
 
 @_hexa_progress_cmd.handle()
-async def _handle_hexa_progress(_: Event, args=CommandArg()):
+async def _handle_hexa_progress(event: Event, args=CommandArg()):
     content = args.extract_plain_text().strip()
     if content:
         try:
             hexa_dict = parse_hexa_progress_input(content)
             result = calculate_hexa_progress(hexa_dict)
-            result = MessageSegment.markdown(result)
+            result = MessageSegment.markdown(at_user(event.get_user_id()) + result)
             await _hexa_progress_cmd.finish(result)
             return
         except (ValueError, IndexError) as _:
